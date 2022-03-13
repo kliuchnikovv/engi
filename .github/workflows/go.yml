@@ -7,9 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify on success
-        uses: KlyuchnikovV/telegram-notify@v0.1.5
+        uses: KlyuchnikovV/telegram-notify@v0.1.6
         if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           parse_mode: markdown
+          disable_links_preview: true
