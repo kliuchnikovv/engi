@@ -45,7 +45,8 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
           message: |
-            TEXT="✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of \"[${{ github.repository }}}](${{ github.repositoryUrl }})\" passed.%0A%0A \
+            ✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of \"[${{ github.repository }}}](${{ github.repositoryUrl }})\" passed.%0A%0A \
             📝 Commit by ${{ github.actor }} on ${{ github.ref_name }}:%0A \
-            ${{ github.event.head_commit.message }}"
+            ${{ github.event.head_commit.message }}
