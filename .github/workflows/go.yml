@@ -33,11 +33,22 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+  
+  lint:
+    needs:
+      - build
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: golangci/golangci-lint-action@v3.1.0
+        with:
+          version: latest
 
   notify:
     needs:
       - build
       - test
+      - lint
     runs-on: ubuntu-latest
     steps:
       - name: Notify
