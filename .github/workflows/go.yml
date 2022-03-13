@@ -6,8 +6,8 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Notify on success
-        uses: KlyuchnikovV/telegram-notify@v0.1.8
+      - name: Notify
+        uses: KlyuchnikovV/telegram-notify@v0.1.9
         if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
