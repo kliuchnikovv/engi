@@ -51,14 +51,17 @@ jobs:
     needs:
       - build
       - test
+      - lint
     runs-on: ubuntu-latest
     steps:
+      - uses: martialonline/workflow-status@v2
+        id: check
       - name: Notify
         uses: KlyuchnikovV/telegram-notify@v0.1.9
         if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          status: ${{ job.status }}
+          status: ${{ steps.check.outputs.status }}
           parse_mode: markdown
           disable_links_preview: true
