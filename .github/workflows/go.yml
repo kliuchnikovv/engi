@@ -40,12 +40,13 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - name: Telegram Notify
-        uses: appleboy/telegram-action@v0.1.1
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: markdown
-          message: |
-            ${{ github.actor }} ${{ github.event.action }} PR ${{ github.event.number }}:
-            [_${{ github.event.pull_request.title }}_](${{ github.event.pull_request.html_url }})
+    - uses: yanzay/notify-telegram@v0.1.0
+      if: always()
+      with:
+        chat: ${{ secrets.chat }} # user id or channel name secret
+        token: ${{ secrets.token }} # token secret
+        status: ${{ job.status }} # do not modify this line
+        # format: markdown
+        # message: |
+        #   ${{ github.actor }} ${{ github.event.action }} PR ${{ github.event.number }}:
+        #   [_${{ github.event.pull_request.title }}_](${{ github.event.pull_request.html_url }})
