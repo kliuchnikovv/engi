@@ -53,6 +53,7 @@ jobs:
       - test
       - lint
     runs-on: ubuntu-latest
+    if: always()
     steps:
       - uses: martialonline/workflow-status@v2
         id: check
