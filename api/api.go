@@ -10,7 +10,8 @@ import (
 type (
 	HandlerFunc func(*Context) error
 	RouterFunc  func(group *echo.Group, path string) *echo.Route
-	API         interface {
+
+	API interface {
 		// Bind - производит привязку методов к путям апи.
 		Bind(routers map[string]RouterFunc)
 
@@ -175,6 +176,10 @@ func (api *BasicAPI) OPTIONS(handler HandlerFunc, middlewares ...HandlerFunc) Ro
 		)
 	}
 }
+
+// func (api *BasicAPI) Use(middlewares ...HandlerFunc) {
+
+// }
 
 // TODO: debug middleware
 // 	for _, route := range e.Echo.Routes() {

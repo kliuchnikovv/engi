@@ -35,3 +35,8 @@ func (e *Engine) RegisterServices(services ...api.API) error {
 func (e *Engine) Start(address string) error {
 	return e.Echo.Start(address)
 }
+
+// TODO: docs
+// TODO: pipeline
+// TODO: readme
+// TODO: context rework

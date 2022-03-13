@@ -1,7 +1,8 @@
-package main
+package service
 
 import (
 	"fmt"
+	"net/http"
 
 	webapi "github.com/KlyuchnikovV/webapi/api"
 )
@@ -10,7 +11,8 @@ import (
 type RequestAPI struct {
 	webapi.API
 
-	Body Body
+	Request    Body
+	SubRequest Body
 }
 
 type Body struct {
@@ -32,6 +34,10 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 			api.Create,
 			api.WithBody(&Body{}),
 		),
+		"create/sub-request": api.POST(
+			api.CreateSubRequest,
+			api.WithBody(&api.SubRequest),
+		),
 		"filter": api.GET(
 			api.Filter,
 			api.WithBool("bool"),
@@ -44,15 +50,21 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 }
 
 func (api *RequestAPI) Create(ctx *webapi.Context) error {
-	if body, _ := ctx.QueryParams.Body(); body != nil {
-		api.Body = *body.(*Body)
+	if body := ctx.QueryParams.Body(); body != nil {
+		api.Request = *body.(*Body)
 	}
 
 	return ctx.Response.Created()
 }
 
+func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
+	return ctx.Response.WithJSON(http.StatusCreated,
+		fmt.Sprintf("sub request created with body %#v", api.SubRequest),
+	)
+}
+
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	return ctx.Response.OK(api.Body)
+	return ctx.Response.OK(api.Request)
 }
 
 func (api *RequestAPI) Filter(ctx *webapi.Context) error {

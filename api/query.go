@@ -7,15 +7,6 @@ import (
 	"time"
 )
 
-type ParameterType string
-
-const (
-	Int    ParameterType = "int"
-	Bool   ParameterType = "bool"
-	String ParameterType = "string"
-	Time   ParameterType = "time"
-)
-
 // TODO: errors
 
 type QueryParams struct {
@@ -28,11 +19,11 @@ func NewQueryParams(ctx *Context) QueryParams {
 	}
 }
 
-func (query *QueryParams) Body() (interface{}, bool) {
+func (query *QueryParams) Body() interface{} {
 	if query.bodyRequested {
-		return query.body, query.body != nil
+		return query.body
 	}
-	return nil, false
+	return nil
 }
 
 func (query *QueryParams) Bool(key string) bool {
