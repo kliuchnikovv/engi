@@ -3,51 +3,50 @@ name: Go
 on: [push]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: 1.17
 
-      - name: Build
-        run: go build -v ./...
+  #     - name: Build
+  #       run: go build -v ./...
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: 1.17
 
-      - name: Print vars
-        run: |
-          export
-          go env
+  #     - name: Print vars
+  #       run: |
+  #         export
+  #         go env
 
-      - name: Test
-        run: go test -v ./...
+  #     - name: Test
+  #       run: go test -v ./...
 
   notify:
-    needs:
-      - build
-      - test
+    # needs:
+    #   - build
+    #   - test
     runs-on: ubuntu-latest
     steps:
-    - uses: KlyuchnikovV/telegram-notify@v0.1
-      if: always()
-      with:
-        chat_id: ${{ secrets.TELEGRAM_TO }}
-        token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: |
-          ✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of "[${{ github.repository }}](${{ github.repositoryUrl }})" passed.
+      - uses: KlyuchnikovV/telegram-notify@v0.1
+        if: always()
+        with:
+          chat_id: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of "[${{ github.repository }}](${{ github.repositoryUrl }})" passed.
 
-          📝 Commit by ${{ github.actor }} on ${{ github.ref_name }}:
-          ${{ github.event.head_commit.message }}
-
+            📝 Commit by ${{ github.actor }} on ${{ github.ref_name }}:
+            ${{ github.event.head_commit.message }}
