@@ -47,6 +47,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           parse_mode: markdown
           message: |
-            ✅ Build [\#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of \"[${{ github.repository }}](${{ github.repositoryUrl }})\" passed\.\n\n \
-            📝 Commit by ${{ github.actor }} on ${{ github.ref_name }}:%0A \
+            ✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of "[${{ github.repository }}](${{ github.repositoryUrl }})" passed.
+
+            📝 Commit by ${{ github.actor }} on ${{ github.ref_name }}:
             ${{ github.event.head_commit.message }}
