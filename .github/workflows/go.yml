@@ -45,6 +45,7 @@ jobs:
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          parse_mode: markdown2
           message: |
             ✅ Build [#${{ github.run_number }}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) of "[${{ github.repository }}](${{ github.repositoryUrl }})" passed.
 
