@@ -12,6 +12,6 @@ jobs:
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          status: ${{ github.action_status }}
+          status: ${{ job.status }}
           parse_mode: markdown
           disable_links_preview: true
