@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify on success
-      - uses: KlyuchnikovV/telegram-notify@v0.1.2
+      - uses: KlyuchnikovV/telegram-notify@v0.1.4
         if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
