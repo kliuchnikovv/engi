@@ -1,0 +1,247 @@
+# This file contains all available configuration options
+# with their default values (in comments).
+
+# Options for analysis running.
+run:
+  # The default concurrency value is the number of available CPU.
+  concurrency: 4
+
+  # Timeout for analysis, e.g. 30s, 5m.
+  # Default: 1m
+  timeout: 3m
+
+  # Exit code when at least one issue was found.
+  # Default: 1
+  # issues-exit-code: 1
+
+  # Which dirs to skip: issues from them won't be reported.
+  # Can use regexp here: `generated.*`, regexp is applied on full path.
+  # Default value is empty list,
+  # but default dirs are skipped independently of this option's value (see skip-dirs-use-default).
+  # "/" will be replaced by current OS file path separator to properly work on Windows.
+  skip-dirs:
+    - vendor
+    - deps
+    - META-INF
+    - devops
+    - proxy
+
+  # If set we pass it to "go list -mod={option}". From "go help modules":
+  # If invoked with -mod=readonly, the go command is disallowed from the implicit
+  # automatic updating of go.mod described above. Instead, it fails when any changes
+  # to go.mod are needed. This setting is most useful to check that go.mod does
+  # not need updates, such as in a continuous integration and testing system.
+  # If invoked with -mod=vendor, the go command assumes that the vendor
+  # directory holds the correct copies of dependencies and ignores
+  # the dependency descriptions in go.mod.
+  #
+  # Allowed values: readonly|vendor|mod
+  # By default, it isn't set.
+  modules-download-mode: mod
+
+  # Allow multiple parallel golangci-lint instances running.
+  # If false (default) - golangci-lint acquires file lock on start.
+  allow-parallel-runners: false
+
+# output configuration options
+# output:
+#   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
+#   #
+#   # Multiple can be specified by separating them by comma, output can be provided
+#   # for each of them by separating format name and path by colon symbol.
+#   # Output path can be either `stdout`, `stderr` or path to the file to write to.
+#   # Example: "checkstyle:report.json,colored-line-number"
+#   #
+#   # Default: colored-line-number
+#   format: code-climate
+
+#   # Print lines of code with issue.
+#   # Default: true
+#   print-issued-lines: true
+
+#   # Print linter name in the end of issue text.
+#   # Default: true
+#   print-linter-name: true
+
+#   # Make issues output unique by line.
+#   # Default: true
+#   uniq-by-line: false
+
+#   # Add a prefix to the output file references.
+#   # Default is no prefix.
+#   path-prefix: ""
+
+#   # Sort results by: filepath, line and column.
+#   sort-results: true
+
+linters:
+  # Enable specific linter
+  # https://golangci-lint.run/usage/linters/#enabled-by-default-linters
+  enable:
+    - bodyclose
+    - errcheck
+    - gofmt
+    - gosimple
+    - govet
+    - nakedret
+    - nilerr
+    - prealloc
+    - predeclared
+    - typecheck
+    - asciicheck
+    - cyclop
+    - deadcode
+    - dogsled
+    - errorlint
+    - exportloopref
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - goprintffuncname
+    - gosec
+    - importas
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nestif
+    - promlinter
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - wastedassign
+    - whitespace
+    - goimports
+    - ifshort
+    - gomnd
+    - paralleltest
+    - tagliatelle
+    - godot
+    - testpackage
+    - gomoddirectives
+    - wsl # TODO: disable cuddling
+
+  disable:
+    - dupl
+    - gofumpt
+    - nlreturn # Check if there new-line before return, continue and brake statements
+    - scopelint # Deprecated
+    - wrapcheck # Check if all errors wrapped
+
+  # Enable presets.
+  # https://golangci-lint.run/usage/linters
+  presets:
+    - bugs
+    - comment
+    - complexity
+    - error
+    - format
+    - import
+    - metalinter
+    - module
+    - performance
+    - sql
+    - style
+    - test
+    - unused
+
+  # Run only fast linters from enabled linters set (first run won't be fast)
+  # Default: false
+  fast: true
+
+linters-settings:
+  cyclop:
+    # The maximal code complexity to report.
+    max-complexity: 15
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    package-average: 0.0
+    # Should ignore tests.
+    # Default: false
+    skip-tests: true
+
+severity:
+  default-severity: info
+  rules:
+    - linters:
+        - gofmt
+        - gosimple
+        - prealloc
+        - predeclared
+      severity: info
+    - linters:
+        - govet
+        - nakedret
+      severity: minor
+    - linters:
+        - bodyclose
+        - errcheck
+        - nilerr
+        - typecheck
+      severity: major
+    - linters:
+        - asciicheck
+        - cyclop
+        - deadcode
+        - dogsled
+        - dupl
+        - errorlint
+        - exportloopref
+        - funlen
+        - gci
+        - gochecknoglobals
+        - gochecknoinits
+        - gocognit
+        - goconst
+        - gocritic
+        - gocyclo
+        - godox
+        - goprintffuncname
+        - gosec
+        - importas
+        - ineffassign
+        - lll
+        - makezero
+        - misspell
+        - nestif
+        - promlinter
+        - revive
+        - rowserrcheck
+        - sqlclosecheck
+        - staticcheck
+        - structcheck
+        - stylecheck
+        - unconvert
+        - unparam
+        - unused
+        - varcheck
+        - wastedassign
+        - whitespace
+        - nlreturn
+        - goimports
+        - ifshort
+        - gofumpt
+        - gomnd
+        - paralleltest
+        - tagliatelle
+        - godot
+        - scopelint
+        - wsl
+        - wrapcheck
+        - testpackage
+        - gomoddirectives
+      severity: minor
