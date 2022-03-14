@@ -3,82 +3,87 @@ package api
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/labstack/echo"
 )
 
 type (
+	// HandlerFunc - describes any handler.
 	HandlerFunc func(*Context) error
-	RouterFunc  func(group *echo.Group, path string) *echo.Route
 
-	API interface {
-		// Bind - производит привязку методов к путям апи.
-		Bind(routers map[string]RouterFunc)
+	// RouterFunc - describes handler prepared for registration.
+	RouterFunc func(group *echo.Group, path string) *echo.Route
 
-		// Routers - метод который должен быть реализован апи-обработчиком
-		// и возвращает отображение обработчиков на имя функции.
+	// ServiceAPI - describes service methods for handlers creation and registering.
+	ServiceAPI interface {
+		// PathPrefix - prefix of all paths for this service.
+		PathPrefix() string
+		// Routers returns the handlers and their relative paths (relative to the service) for registration.
 		Routers() map[string]RouterFunc
 
-		RegisterHandlers(g *echo.Group) error
-
+		// GET - implements GET api method call.
 		GET(HandlerFunc, ...HandlerFunc) RouterFunc
+		// PUT - implements PUT api method call.
 		PUT(HandlerFunc, ...HandlerFunc) RouterFunc
+		// HEAD - implements HEAD api method call.
 		HEAD(HandlerFunc, ...HandlerFunc) RouterFunc
+		// POST - implements POST api method call.
 		POST(HandlerFunc, ...HandlerFunc) RouterFunc
+		// PATCH - implements PATCH api method call.
 		PATCH(HandlerFunc, ...HandlerFunc) RouterFunc
+		// TRACE - implements TRACE api method call.
 		TRACE(HandlerFunc, ...HandlerFunc) RouterFunc
+		// DELETE - implements DELETE api method call.
 		DELETE(HandlerFunc, ...HandlerFunc) RouterFunc
+		// CONNECT - implements CONNECT api method call.
 		CONNECT(HandlerFunc, ...HandlerFunc) RouterFunc
+		// OPTIONS - implements OPTIONS api method call.
 		OPTIONS(HandlerFunc, ...HandlerFunc) RouterFunc
 
+		// WithBody - takes pointer to structure and saves casted request body into context.
+		// Result can be retrieved from context using 'context.QueryParams.Body()'.
 		WithBody(interface{}) HandlerFunc
+		// WithBool - queries mandatory boolean parameter from request by 'key'.
+		// Result can be retrieved from context using 'context.QueryParams.Bool(key)'.
 		WithBool(key string) HandlerFunc
+		// WithInt - queries mandatory integer parameter from request by 'key'.
+		// Result can be retrieved from context using 'context.QueryParams.Integer(key)'.
 		WithInt(key string) HandlerFunc
+		// WithFloat - queries mandatory floating point number parameter from request by 'key'.
+		// Result can be retrieved from context using 'context.QueryParams.Float(key)'.
 		WithFloat(key string) HandlerFunc
+		// WithString - queries mandatory string parameter from request by 'key'.
+		// Result can be retrieved from context using 'context.QueryParams.String(key)'.
 		WithString(key string) HandlerFunc
+		// WithTime - queries mandatory time parameter from request by 'key' using 'layout'.
+		// Result can be retrieved from context using 'context.QueryParams.Time(key, layout)'.
 		WithTime(key, layout string) HandlerFunc
 	}
 
-	BasicAPI struct {
-		prefix  string
-		routers map[string]RouterFunc
+	// ServiceBase - provides service methods for handlers creation and registering.
+	ServiceBase struct {
+		prefix string
 	}
 )
 
-func New(prefix string) API {
-	return &BasicAPI{
+func New(prefix string) ServiceAPI {
+	return &ServiceBase{
 		prefix: prefix,
 	}
 }
 
-// Bind - производит привязку методов к путям апи.
-func (api *BasicAPI) Bind(routers map[string]RouterFunc) {
-	// TODO: remake - can be rewrited in service
-	api.routers = routers
+// PathPrefix - prefix of all paths for this service.
+func (api *ServiceBase) PathPrefix() string {
+	return api.prefix
 }
 
-func (api *BasicAPI) Routers() map[string]RouterFunc {
+// Routers returns the handlers and their relative paths (relative to the service) for registration.
+func (api *ServiceBase) Routers() map[string]RouterFunc {
 	return nil
 }
 
-func (api *BasicAPI) RegisterHandlers(r *echo.Group) error {
-	var group = r.Group(
-		fmt.Sprintf(
-			"/%s", strings.Trim(api.prefix, "/"),
-		),
-	)
-
-	for path, register := range api.routers {
-		register(group, fmt.Sprintf(
-			"/%s", strings.Trim(path, "/"),
-		))
-	}
-
-	return nil
-}
-
-func (api *BasicAPI) route(handler HandlerFunc, middlewares ...HandlerFunc) echo.HandlerFunc {
+// route - creates 'webapi.Context' from 'echo.Context' and wraps handler function calls.
+func (api *ServiceBase) route(handler HandlerFunc, middlewares ...HandlerFunc) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		var context = NewContext(ctx)
 
@@ -92,33 +97,12 @@ func (api *BasicAPI) route(handler HandlerFunc, middlewares ...HandlerFunc) echo
 			}
 		}
 
-		if err := handler(context); err != nil {
-			return err
-		}
-
-		return nil
+		return handler(context)
 	}
 }
 
-func (api *BasicAPI) CONNECT(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
-	return func(group *echo.Group, path string) *echo.Route {
-		return group.CONNECT(
-			path,
-			api.route(handler, middlewares...),
-		)
-	}
-}
-
-func (api *BasicAPI) DELETE(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
-	return func(group *echo.Group, path string) *echo.Route {
-		return group.DELETE(
-			path,
-			api.route(handler, middlewares...),
-		)
-	}
-}
-
-func (api *BasicAPI) GET(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+// GET - implements GET api method call.
+func (api *ServiceBase) GET(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
 	return func(group *echo.Group, path string) *echo.Route {
 		return group.GET(
 			path,
@@ -127,34 +111,8 @@ func (api *BasicAPI) GET(handler HandlerFunc, middlewares ...HandlerFunc) Router
 	}
 }
 
-func (api *BasicAPI) HEAD(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
-	return func(group *echo.Group, path string) *echo.Route {
-		return group.HEAD(
-			path,
-			api.route(handler, middlewares...),
-		)
-	}
-}
-
-func (api *BasicAPI) PATCH(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
-	return func(group *echo.Group, path string) *echo.Route {
-		return group.PATCH(
-			path,
-			api.route(handler, middlewares...),
-		)
-	}
-}
-
-func (api *BasicAPI) POST(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
-	return func(group *echo.Group, path string) *echo.Route {
-		return group.POST(
-			path,
-			api.route(handler, middlewares...),
-		)
-	}
-}
-
-func (api *BasicAPI) PUT(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+// PUT - implements PUT api method call.
+func (api *ServiceBase) PUT(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
 	return func(group *echo.Group, path string) *echo.Route {
 		return group.PUT(
 			path,
@@ -163,7 +121,38 @@ func (api *BasicAPI) PUT(handler HandlerFunc, middlewares ...HandlerFunc) Router
 	}
 }
 
-func (api *BasicAPI) TRACE(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+// HEAD - implements HEAD api method call.
+func (api *ServiceBase) HEAD(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+	return func(group *echo.Group, path string) *echo.Route {
+		return group.HEAD(
+			path,
+			api.route(handler, middlewares...),
+		)
+	}
+}
+
+// POST - implements POST api method call.
+func (api *ServiceBase) POST(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+	return func(group *echo.Group, path string) *echo.Route {
+		return group.POST(
+			path,
+			api.route(handler, middlewares...),
+		)
+	}
+}
+
+// PATCH - implements PATCH api method call.
+func (api *ServiceBase) PATCH(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+	return func(group *echo.Group, path string) *echo.Route {
+		return group.PATCH(
+			path,
+			api.route(handler, middlewares...),
+		)
+	}
+}
+
+// TRACE - implements TRACE api method call.
+func (api *ServiceBase) TRACE(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
 	return func(group *echo.Group, path string) *echo.Route {
 		return group.TRACE(
 			path,
@@ -172,7 +161,28 @@ func (api *BasicAPI) TRACE(handler HandlerFunc, middlewares ...HandlerFunc) Rout
 	}
 }
 
-func (api *BasicAPI) OPTIONS(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+// DELETE - implements DELETE api method call.
+func (api *ServiceBase) DELETE(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+	return func(group *echo.Group, path string) *echo.Route {
+		return group.DELETE(
+			path,
+			api.route(handler, middlewares...),
+		)
+	}
+}
+
+// CONNECT - implements CONNECT api method call.
+func (api *ServiceBase) CONNECT(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
+	return func(group *echo.Group, path string) *echo.Route {
+		return group.CONNECT(
+			path,
+			api.route(handler, middlewares...),
+		)
+	}
+}
+
+// OPTIONS - implements OPTIONS api method call.
+func (api *ServiceBase) OPTIONS(handler HandlerFunc, middlewares ...HandlerFunc) RouterFunc {
 	return func(group *echo.Group, path string) *echo.Route {
 		return group.OPTIONS(
 			path,
@@ -180,16 +190,3 @@ func (api *BasicAPI) OPTIONS(handler HandlerFunc, middlewares ...HandlerFunc) Ro
 		)
 	}
 }
-
-// func (api *BasicAPI) Use(middlewares ...HandlerFunc) {
-
-// }
-
-// TODO: debug middleware
-// 	for _, route := range e.Echo.Routes() {
-// 	fmt.Printf("Method: %s, path: %s\n", route.Method, route.Path)
-// }
-
-// for key, parameter := range ctx.Query.Parameters() {
-// 	fmt.Printf("Key: %s, param: %s\n", key, parameter)
-// }

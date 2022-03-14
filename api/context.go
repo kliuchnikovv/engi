@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo"
 )
 
+// Context - provides methods for extracting data from query and response back.
 type Context struct {
 	Context echo.Context
 
@@ -17,6 +18,7 @@ type Context struct {
 	queryParameters map[string]interface{}
 }
 
+// NewContext - returns new Context instance from 'echo.Context'.
 func NewContext(ctx echo.Context) *Context {
 	var context = &Context{
 		Context:         ctx,
