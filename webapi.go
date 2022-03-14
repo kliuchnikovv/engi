@@ -37,6 +37,5 @@ func (e *Engine) Start(address string) error {
 }
 
 // TODO: docs
-// TODO: pipeline
 // TODO: readme
 // TODO: context rework
