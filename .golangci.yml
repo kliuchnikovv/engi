@@ -12,7 +12,7 @@ run:
 
   # Exit code when at least one issue was found.
   # Default: 1
-  # issues-exit-code: 1
+  issues-exit-code: 0
 
   # Which dirs to skip: issues from them won't be reported.
   # Can use regexp here: `generated.*`, regexp is applied on full path.
