@@ -7,7 +7,7 @@ import (
 	webapi "github.com/KlyuchnikovV/webapi/api"
 )
 
-// Example service
+// Example service.
 type RequestAPI struct {
 	webapi.API
 

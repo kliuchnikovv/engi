@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/KlyuchnikovV/webapi"
 	"github.com/KlyuchnikovV/webapi/example/service"
 )
@@ -8,9 +10,15 @@ import (
 func main() {
 	w := webapi.New()
 
-	w.RegisterServices(
+	err := w.RegisterServices(
 		service.NewRequestAPI(),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	w.Start("localhost:8080")
+	err = w.Start("localhost:8080")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

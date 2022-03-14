@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -83,7 +84,10 @@ func (api *BasicAPI) route(handler HandlerFunc, middlewares ...HandlerFunc) echo
 
 		for _, middleware := range middlewares {
 			if err := middleware(context); err != nil {
-				var echoErr = err.(*echo.HTTPError)
+				var echoErr = new(echo.HTTPError)
+
+				errors.As(err, &echoErr)
+
 				return context.Response.Error(echoErr.Code, fmt.Errorf("%v", echoErr.Message))
 			}
 		}
