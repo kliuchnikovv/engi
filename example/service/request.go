@@ -11,6 +11,7 @@ import (
 type RequestAPI struct {
 	webapi.API
 
+	// Bad practice in case of concurrency.
 	Request    Body
 	SubRequest Body
 }
@@ -29,6 +30,7 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 	return map[string]webapi.RouterFunc{
 		":id": api.GET(
 			api.GetByID,
+			api.WithInt("id"),
 		),
 		"create": api.POST(
 			api.Create,
@@ -64,7 +66,14 @@ func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
 }
 
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	return ctx.Response.OK(api.Request)
+	var id = ctx.QueryParams.Integer("int")
+
+	// Do something with id (we will check it)
+	if id < 0 {
+		return ctx.Response.BadRequest("id can't be negative (got: %d)", id)
+	}
+
+	return ctx.Response.OK(fmt.Sprintf("got id: '%d'", id))
 }
 
 func (api *RequestAPI) Filter(ctx *webapi.Context) error {
