@@ -12,7 +12,7 @@ run:
 
   # Exit code when at least one issue was found.
   # Default: 1
-  issues-exit-code: 0
+  issues-exit-code: 1
 
   # Which dirs to skip: issues from them won't be reported.
   # Can use regexp here: `generated.*`, regexp is applied on full path.
@@ -132,12 +132,12 @@ linters:
     - godot
     - testpackage
     - gomoddirectives
-    - wsl       # TODO: disable cuddling
+    - wsl # TODO: disable cuddling
 
   disable:
     - dupl
     - gofumpt
-    - nlreturn  # Check if there new-line before return, continue and brake statements
+    - nlreturn # Check if there new-line before return, continue and brake statements
     - scopelint # Deprecated
     - wrapcheck # Check if all errors wrapped
 
@@ -178,70 +178,70 @@ severity:
   default-severity: info
   rules:
     - linters:
-      - gofmt
-      - gosimple
-      - prealloc
-      - predeclared
+        - gofmt
+        - gosimple
+        - prealloc
+        - predeclared
       severity: info
     - linters:
-      - govet
-      - nakedret
+        - govet
+        - nakedret
       severity: minor
     - linters:
-      - bodyclose
-      - errcheck
-      - nilerr
-      - typecheck
+        - bodyclose
+        - errcheck
+        - nilerr
+        - typecheck
       severity: major
     - linters:
-      - asciicheck
-      - cyclop
-      - deadcode
-      - dogsled
-      - dupl
-      - errorlint
-      - exportloopref
-      - funlen
-      - gci
-      - gochecknoglobals
-      - gochecknoinits
-      - gocognit
-      - goconst
-      - gocritic
-      - gocyclo
-      - godox
-      - goprintffuncname
-      - gosec
-      - importas
-      - ineffassign
-      - lll
-      - makezero
-      - misspell
-      - nestif
-      - promlinter
-      - revive
-      - rowserrcheck
-      - sqlclosecheck
-      - staticcheck
-      - structcheck
-      - stylecheck
-      - unconvert
-      - unparam
-      - unused
-      - varcheck
-      - wastedassign
-      - whitespace
-      - nlreturn
-      - goimports
-      - ifshort
-      - gofumpt
-      - gomnd
-      - paralleltest
-      - tagliatelle
-      - godot
-      - scopelint
-      - wsl
-      - wrapcheck
-      - testpackage
-      - gomoddirectives
+        - asciicheck
+        - cyclop
+        - deadcode
+        - dogsled
+        - dupl
+        - errorlint
+        - exportloopref
+        - funlen
+        - gci
+        - gochecknoglobals
+        - gochecknoinits
+        - gocognit
+        - goconst
+        - gocritic
+        - gocyclo
+        - godox
+        - goprintffuncname
+        - gosec
+        - importas
+        - ineffassign
+        - lll
+        - makezero
+        - misspell
+        - nestif
+        - promlinter
+        - revive
+        - rowserrcheck
+        - sqlclosecheck
+        - staticcheck
+        - structcheck
+        - stylecheck
+        - unconvert
+        - unparam
+        - unused
+        - varcheck
+        - wastedassign
+        - whitespace
+        - nlreturn
+        - goimports
+        - ifshort
+        - gofumpt
+        - gomnd
+        - paralleltest
+        - tagliatelle
+        - godot
+        - scopelint
+        - wsl
+        - wrapcheck
+        - testpackage
+        - gomoddirectives
       severity: minor
