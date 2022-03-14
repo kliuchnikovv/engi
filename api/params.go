@@ -31,6 +31,7 @@ func (api *BasicAPI) getParam(
 	}
 
 	ctx.queryParameters[key] = result
+
 	return nil
 }
 
@@ -59,7 +60,12 @@ func (api *BasicAPI) WithBool(key string) HandlerFunc {
 func (api *BasicAPI) WithInt(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
-			result, err := strconv.ParseInt(param, 10, 64)
+			var (
+				intBase = 10
+				bitSize = 64
+			)
+
+			result, err := strconv.ParseInt(param, intBase, bitSize)
 			if err != nil {
 				return nil, &echo.HTTPError{
 					Code:     http.StatusBadRequest,
@@ -67,6 +73,7 @@ func (api *BasicAPI) WithInt(key string) HandlerFunc {
 					Internal: err,
 				}
 			}
+
 			return result, err
 		})
 	}
@@ -75,7 +82,9 @@ func (api *BasicAPI) WithInt(key string) HandlerFunc {
 func (api *BasicAPI) WithFloat(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
-			result, err := strconv.ParseFloat(param, 64)
+			var bitSize = 64
+
+			result, err := strconv.ParseFloat(param, bitSize)
 			if err != nil {
 				return nil, &echo.HTTPError{
 					Code:     http.StatusBadRequest,
@@ -83,6 +92,7 @@ func (api *BasicAPI) WithFloat(key string) HandlerFunc {
 					Internal: err,
 				}
 			}
+
 			return result, err
 		})
 	}
@@ -107,6 +117,7 @@ func (api *BasicAPI) WithTime(key, layout string) HandlerFunc {
 					Internal: err,
 				}
 			}
+
 			return result, err
 		})
 	}

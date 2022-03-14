@@ -6,8 +6,6 @@ import (
 	"net/http"
 )
 
-// TODO: preprocess payload
-
 type Response struct {
 	*Context
 }

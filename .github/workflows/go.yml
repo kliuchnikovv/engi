@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -17,6 +18,7 @@ jobs:
         run: go build -v ./...
 
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -45,18 +47,21 @@ jobs:
           version: latest
 
   notify:
+    name: Notify
     needs:
       - build
       - test
       - lint
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - name: Notify
-        uses: KlyuchnikovV/telegram-notify@v0.1.9
+      - uses: martialonline/workflow-status@v2
+        id: check
+      - uses: KlyuchnikovV/telegram-notify@v0.1.9
         if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          status: ${{ job.status }}
+          status: ${{ steps.check.outputs.status }}
           parse_mode: markdown
           disable_links_preview: true

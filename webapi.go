@@ -24,6 +24,7 @@ func (e *Engine) RegisterServices(services ...api.API) error {
 
 	for i := range e.services {
 		e.services[i].Bind(e.services[i].Routers())
+
 		if err := e.services[i].RegisterHandlers(r); err != nil {
 			return err
 		}
@@ -37,6 +38,5 @@ func (e *Engine) Start(address string) error {
 }
 
 // TODO: docs
-// TODO: pipeline
 // TODO: readme
 // TODO: context rework
