@@ -23,11 +23,11 @@ The idea of this framework is to create **services**, each of which works with o
 
 ```golang
 type RequestAPI struct {
-	webapi.API
+    webapi.API
 }
 
 func NewRequestAPI() webapi.API {
-	return &RequestAPI{
+    return &RequestAPI{
         // 'request' string is a prefix to the query
         // so full path to GetByID handler will be '/api/request/get'
 		API: webapi.New("request"),
@@ -55,14 +55,14 @@ Also, through the context `ctx.Response`<!--(godoc link?)-->, you can form a res
 
 ```golang
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	var id = ctx.QueryParams.Integer("id")
+    var id = ctx.QueryParams.Integer("id")
 
-	// Do something with id (we will check it)
-	if id < 0 {
-		return ctx.Response.BadRequest("id can't be negative (got: %d)", id)
-	}
+    // Do something with id (we will check it)
+    if id < 0 {
+        return ctx.Response.BadRequest("id can't be negative (got: %d)", id)
+    }
 
-	return ctx.Response.OK(fmt.Sprintf("got id: '%d'", id))
+    return ctx.Response.OK(fmt.Sprintf("got id: '%d'", id))
 }
 ```
 
@@ -70,11 +70,11 @@ As a result, to create an application, it remains to register the service and ru
 
 ```golang
 func main() {
-	w := webapi.New()
+    w := webapi.New()
 
-	w.RegisterServices(
-		service.NewRequestAPI(),
-	)
+    w.RegisterServices(
+        service.NewRequestAPI(),
+    )
 
     w.Start("localhost:8080")
 }
