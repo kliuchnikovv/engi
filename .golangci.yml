@@ -55,24 +55,24 @@ output:
   # Default: colored-line-number
   format: github-actions
 
-  # Print lines of code with issue.
-  # Default: true
-  print-issued-lines: true
+  # # Print lines of code with issue.
+  # # Default: true
+  # print-issued-lines: true
 
-  # Print linter name in the end of issue text.
-  # Default: true
-  print-linter-name: true
+  # # Print linter name in the end of issue text.
+  # # Default: true
+  # print-linter-name: true
 
-  # Make issues output unique by line.
-  # Default: true
-  uniq-by-line: false
+  # # Make issues output unique by line.
+  # # Default: true
+  # uniq-by-line: false
 
-  # Add a prefix to the output file references.
-  # Default is no prefix.
-  path-prefix: ""
+  # # Add a prefix to the output file references.
+  # # Default is no prefix.
+  # path-prefix: ""
 
-  # Sort results by: filepath, line and column.
-  sort-results: true
+  # # Sort results by: filepath, line and column.
+  # sort-results: true
 
 linters:
   # Enable specific linter
