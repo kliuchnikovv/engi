@@ -1,4 +1,4 @@
-package api
+package webapi
 
 import (
 	"errors"
@@ -66,7 +66,7 @@ type (
 	}
 )
 
-func New(prefix string) ServiceAPI {
+func NewService(prefix string) ServiceAPI {
 	return &ServiceBase{
 		prefix: prefix,
 	}

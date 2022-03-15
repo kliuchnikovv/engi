@@ -1,10 +1,12 @@
-package api
+package webapi
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
+
+// TODO: docs
 
 type Response struct {
 	*Context

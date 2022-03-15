@@ -1,4 +1,4 @@
-package api
+package webapi
 
 import (
 	"github.com/labstack/echo"
@@ -30,4 +30,29 @@ func NewContext(ctx echo.Context) *Context {
 	context.Response = NewResponse(context)
 
 	return context
+}
+
+// PathParameter - retrieves path parameter by its name.
+func (ctx *Context) PathParameter(key string) string {
+	return ctx.Context.Param(key)
+}
+
+// AllPathParameters - return 'name - value' pairs of all path parameters.
+func (ctx *Context) AllPathParameters() map[string]string {
+	var (
+		names  = ctx.Context.ParamNames()
+		result = make(map[string]string, len(names))
+	)
+
+	for _, name := range names {
+		result[name] = ctx.Context.Param(name)
+	}
+
+	return result
+}
+
+// Body - returns query body.
+// Body must be requested by 'api.WithBody(pointer)'.
+func (ctx *Context) Body() interface{} {
+	return ctx.body
 }

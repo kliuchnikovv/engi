@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/api"
 	"github.com/labstack/echo"
 )
+
+// TODO: docs
 
 type Engine struct {
 	*echo.Echo
 
-	services []api.ServiceAPI
+	services []ServiceAPI
 }
 
 func New() *Engine {
@@ -20,7 +21,7 @@ func New() *Engine {
 	}
 }
 
-func (e *Engine) RegisterServices(services ...api.ServiceAPI) error {
+func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 	e.services = services
 
 	var r = e.Echo.Group("/api")
@@ -34,7 +35,7 @@ func (e *Engine) RegisterServices(services ...api.ServiceAPI) error {
 	return nil
 }
 
-func (e *Engine) registerHandlers(service api.ServiceAPI, r *echo.Group) error {
+func (e *Engine) registerHandlers(service ServiceAPI, r *echo.Group) error {
 	var group = r.Group(
 		fmt.Sprintf(
 			"/%s", strings.Trim(service.PathPrefix(), "/"),
@@ -53,6 +54,3 @@ func (e *Engine) registerHandlers(service api.ServiceAPI, r *echo.Group) error {
 func (e *Engine) Start(address string) error {
 	return e.Echo.Start(address)
 }
-
-// TODO: docs
-// TODO: context rework

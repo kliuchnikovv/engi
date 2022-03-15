@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	webapi "github.com/KlyuchnikovV/webapi/api"
+	"github.com/KlyuchnikovV/webapi"
 )
+
+// TODO: docs
 
 // Example service.
 type RequestAPI struct {
@@ -23,7 +25,7 @@ type Body struct {
 
 func NewRequestAPI() webapi.ServiceAPI {
 	return &RequestAPI{
-		ServiceAPI: webapi.New("request"),
+		ServiceAPI: webapi.NewService("request"),
 	}
 }
 
