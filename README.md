@@ -10,7 +10,7 @@
 ## A web framework that prioritizes developer usability.
 
 ### Description
-This framework is based on the [labstack echo](https://github.com/labstack/echo) framework and aims to write more structured, human-centric code.
+This framework based on the [labstack echo](https://github.com/labstack/echo) framework and aims to write more structured, human-centric code.
 
 ### Installation
 
@@ -35,9 +35,9 @@ func NewRequestAPI() webapi.API {
 }
 ```
 
-For each service, the `Routers` method is defined, which gives handlers upon registration.
+For each service, the `Routers` method defined, which gives handlers upon registration.
 
-The handler is described as a **relative** path to the handler wrapped in a request method (`POST`, `GET` ...<!--(godoc link?)-->)
+The handler described as a **relative** path to the handler wrapped in a request method (`POST`, `GET` ...<!--(godoc link?)-->)
 with additional middleware functions, including those for requesting mandatory query parameters.
 
 ```golang
