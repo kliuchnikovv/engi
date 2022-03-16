@@ -7,8 +7,6 @@ import (
 	"github.com/labstack/echo"
 )
 
-// TODO: docs
-
 type Engine struct {
 	*echo.Echo
 
@@ -19,20 +17,6 @@ func New() *Engine {
 	return &Engine{
 		Echo: echo.New(),
 	}
-}
-
-func (e *Engine) RegisterServices(services ...ServiceAPI) error {
-	e.services = services
-
-	var r = e.Echo.Group("/api")
-
-	for i := range e.services {
-		if err := e.registerHandlers(e.services[i], r); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (e *Engine) registerHandlers(service ServiceAPI, r *echo.Group) error {
@@ -51,6 +35,17 @@ func (e *Engine) registerHandlers(service ServiceAPI, r *echo.Group) error {
 	return nil
 }
 
-func (e *Engine) Start(address string) error {
-	return e.Echo.Start(address)
+// RegisterServices - registering service routes.
+func (e *Engine) RegisterServices(services ...ServiceAPI) error {
+	e.services = services
+
+	var r = e.Echo.Group("/api")
+
+	for i := range e.services {
+		if err := e.registerHandlers(e.services[i], r); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
