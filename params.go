@@ -1,4 +1,4 @@
-package api
+package webapi
 
 import (
 	"fmt"
@@ -10,7 +10,9 @@ import (
 	"github.com/labstack/echo"
 )
 
-func (api *BasicAPI) getParam(
+// getParam - extracting parameter from context, calls middleware and saves to 'context.queryParameters[key]'.
+// After this parameter can be retrieved from context using 'context.Query' methods.
+func (api *ServiceBase) getParam(
 	ctx *Context,
 	key string,
 	convert func(string) (interface{}, error),
@@ -35,7 +37,9 @@ func (api *BasicAPI) getParam(
 	return nil
 }
 
-func (api *BasicAPI) WithBody(pointer interface{}) HandlerFunc {
+// WithBody - takes pointer to structure and saves casted request body into context.
+// Result can be retrieved from context using 'context.QueryParams.Body()'.
+func (api *ServiceBase) WithBody(pointer interface{}) HandlerFunc {
 	return func(ctx *Context) error {
 		ctx.bodyRequested = true
 
@@ -49,7 +53,9 @@ func (api *BasicAPI) WithBody(pointer interface{}) HandlerFunc {
 	}
 }
 
-func (api *BasicAPI) WithBool(key string) HandlerFunc {
+// WithBool - queries mandatory boolean parameter from request by 'key'.
+// Result can be retrieved from context using 'context.QueryParams.Bool(key)'.
+func (api *ServiceBase) WithBool(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			return strings.ToLower(param) == "true", nil
@@ -57,7 +63,9 @@ func (api *BasicAPI) WithBool(key string) HandlerFunc {
 	}
 }
 
-func (api *BasicAPI) WithInt(key string) HandlerFunc {
+// WithInt - queries mandatory integer parameter from request by 'key'.
+// Result can be retrieved from context using 'context.QueryParams.Integer(key)'.
+func (api *ServiceBase) WithInt(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			var (
@@ -79,7 +87,9 @@ func (api *BasicAPI) WithInt(key string) HandlerFunc {
 	}
 }
 
-func (api *BasicAPI) WithFloat(key string) HandlerFunc {
+// WithFloat - queries mandatory floating point number parameter from request by 'key'.
+// Result can be retrieved from context using 'context.QueryParams.Float(key)'.
+func (api *ServiceBase) WithFloat(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			var bitSize = 64
@@ -98,7 +108,9 @@ func (api *BasicAPI) WithFloat(key string) HandlerFunc {
 	}
 }
 
-func (api *BasicAPI) WithString(key string) HandlerFunc {
+// WithString - queries mandatory string parameter from request by 'key'.
+// Result can be retrieved from context using 'context.QueryParams.String(key)'.
+func (api *ServiceBase) WithString(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			return param, nil
@@ -106,7 +118,9 @@ func (api *BasicAPI) WithString(key string) HandlerFunc {
 	}
 }
 
-func (api *BasicAPI) WithTime(key, layout string) HandlerFunc {
+// WithTime - queries mandatory time parameter from request by 'key' using 'layout'.
+// Result can be retrieved from context using 'context.QueryParams.Time(key, layout)'.
+func (api *ServiceBase) WithTime(key, layout string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			result, err := time.Parse(layout, param)

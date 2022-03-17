@@ -29,9 +29,9 @@ type RequestAPI struct {
 func NewRequestAPI() webapi.API {
     return &RequestAPI{
         // 'request' string is a prefix to the query
-        // so full path to GetByID handler will be '/api/request/:id'
-        API: webapi.New("request"),
-    }
+        // so full path to GetByID handler will be '/api/request/get'
+		API: webapi.New("request"),
+	}
 }
 ```
 
@@ -42,10 +42,10 @@ with additional middleware functions, including those for requesting mandatory q
 
 ```golang
 func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
-    return map[string]webapi.RouterFunc{
-        ":id":    api.GET(api.GetByID, api.WithInt("id")),
-        "create": api.POST(api.Create, api.WithBody(&Body{})),
-    }
+	return map[string]webapi.RouterFunc{
+		"get":    api.GET(api.GetByID, api.WithInt("id")),
+		"create": api.POST(api.Create, api.WithBody(&Body{})),
+	}
 }
 ```
 
