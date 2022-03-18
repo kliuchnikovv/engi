@@ -1,14 +1,16 @@
 package webapi
 
 import (
-	"github.com/KlyuchnikovV/webapi/api"
+	"fmt"
+	"strings"
+
 	"github.com/labstack/echo"
 )
 
 type Engine struct {
 	*echo.Echo
 
-	services []api.API
+	services []ServiceAPI
 }
 
 func New() *Engine {
@@ -17,26 +19,33 @@ func New() *Engine {
 	}
 }
 
-func (e *Engine) RegisterServices(services ...api.API) error {
+func (e *Engine) registerHandlers(service ServiceAPI, r *echo.Group) error {
+	var group = r.Group(
+		fmt.Sprintf(
+			"/%s", strings.Trim(service.PathPrefix(), "/"),
+		),
+	)
+
+	for path, register := range service.Routers() {
+		register(group, fmt.Sprintf(
+			"/%s", strings.Trim(path, "/"),
+		))
+	}
+
+	return nil
+}
+
+// RegisterServices - registering service routes.
+func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 	e.services = services
 
 	var r = e.Echo.Group("/api")
 
 	for i := range e.services {
-		e.services[i].Bind(e.services[i].Routers())
-
-		if err := e.services[i].RegisterHandlers(r); err != nil {
+		if err := e.registerHandlers(e.services[i], r); err != nil {
 			return err
 		}
 	}
 
 	return nil
 }
-
-func (e *Engine) Start(address string) error {
-	return e.Echo.Start(address)
-}
-
-// TODO: docs
-// TODO: readme
-// TODO: context rework

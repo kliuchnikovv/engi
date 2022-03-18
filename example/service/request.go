@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	webapi "github.com/KlyuchnikovV/webapi/api"
+	"github.com/KlyuchnikovV/webapi"
 )
 
 // Example service.
 type RequestAPI struct {
-	webapi.API
+	webapi.ServiceAPI
 
+	// Bad practice in case of concurrency,
+	// but useful in this example.
 	Request    Body
 	SubRequest Body
 }
@@ -19,16 +21,17 @@ type Body struct {
 	Field string `json:"field"`
 }
 
-func NewRequestAPI() webapi.API {
+func NewRequestAPI() webapi.ServiceAPI {
 	return &RequestAPI{
-		API: webapi.New("request"),
+		ServiceAPI: webapi.NewService("request"),
 	}
 }
 
 func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 	return map[string]webapi.RouterFunc{
-		":id": api.GET(
+		"get": api.GET(
 			api.GetByID,
+			api.WithInt("id"),
 		),
 		"create": api.POST(
 			api.Create,
@@ -64,7 +67,14 @@ func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
 }
 
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	return ctx.Response.OK(api.Request)
+	var id = ctx.QueryParams.Integer("id")
+
+	// Do something with id (we will check it)
+	if id < 0 {
+		return ctx.Response.BadRequest("id can't be negative (got: %d)", id)
+	}
+
+	return ctx.Response.OK(fmt.Sprintf("got id: '%d'", id))
 }
 
 func (api *RequestAPI) Filter(ctx *webapi.Context) error {
