@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	webapi "github.com/KlyuchnikovV/webapi/api"
+	"github.com/KlyuchnikovV/webapi/v1"
 )
 
 // Example service.
@@ -53,13 +53,11 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 }
 
 func (api *RequestAPI) Create(ctx *webapi.Context) error {
-	if body := ctx.Body(); body != nil {
+	if body := ctx.QueryParams.Body(); body != nil {
 		api.Request = *body.(*Body)
 	}
 
-	ctx.Response.Created()
-
-	return nil
+	return ctx.Response.Created()
 }
 
 func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
@@ -69,7 +67,7 @@ func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
 }
 
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	var id = ctx.Request.Integer("id")
+	var id = ctx.QueryParams.Integer("id")
 
 	// Do something with id (we will check it)
 	if id < 0 {
@@ -81,11 +79,11 @@ func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
 
 func (api *RequestAPI) Filter(ctx *webapi.Context) error {
 	var (
-		i     = ctx.Request.Integer("int")
-		str   = ctx.Request.String("str")
-		t     = ctx.Request.Time("time", "2006-01-02 15:04")
-		b     = ctx.Request.Bool("bool")
-		float = ctx.Request.Float("float")
+		i     = ctx.QueryParams.Integer("int")
+		str   = ctx.QueryParams.String("str")
+		t     = ctx.QueryParams.Time("time", "2006-01-02 15:04")
+		b     = ctx.QueryParams.Bool("bool")
+		float = ctx.QueryParams.Float("float")
 	)
 
 	return ctx.Response.OK(fmt.Sprintf(

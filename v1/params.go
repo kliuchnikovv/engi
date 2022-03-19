@@ -1,9 +1,13 @@
 package webapi
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/labstack/echo"
 )
 
 // getParam - extracting parameter from context, calls middleware and saves to 'context.queryParameters[key]'.
@@ -13,9 +17,14 @@ func (api *ServiceBase) getParam(
 	key string,
 	convert func(string) (interface{}, error),
 ) error {
-	var param = ctx.Request.getParam(key)
+	ctx.requestedParams[key] = struct{}{}
+
+	var param = ctx.Context.QueryParam(key)
 	if len(param) == 0 {
-		return NewErrorResponse(http.StatusBadRequest, "parameter '%s' not found", key)
+		return &echo.HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Errorf("parameter '%s' not found", key),
+		}
 	}
 
 	result, err := convert(param)
@@ -23,9 +32,7 @@ func (api *ServiceBase) getParam(
 		return err
 	}
 
-	if result != nil {
-		ctx.Request.updateParam(key, result)
-	}
+	ctx.queryParameters[key] = result
 
 	return nil
 }
@@ -34,7 +41,15 @@ func (api *ServiceBase) getParam(
 // Result can be retrieved from context using 'context.QueryParams.Body()'.
 func (api *ServiceBase) WithBody(pointer interface{}) HandlerFunc {
 	return func(ctx *Context) error {
-		return ctx.Bind(pointer)
+		ctx.bodyRequested = true
+
+		if err := ctx.Context.Bind(pointer); err != nil {
+			return err
+		}
+
+		ctx.body = pointer
+
+		return nil
 	}
 }
 
@@ -43,7 +58,7 @@ func (api *ServiceBase) WithBody(pointer interface{}) HandlerFunc {
 func (api *ServiceBase) WithBool(key string) HandlerFunc {
 	return func(ctx *Context) error {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
-			return strconv.ParseBool(param)
+			return strings.ToLower(param) == "true", nil
 		})
 	}
 }
@@ -60,7 +75,11 @@ func (api *ServiceBase) WithInt(key string) HandlerFunc {
 
 			result, err := strconv.ParseInt(param, intBase, bitSize)
 			if err != nil {
-				return nil, NewErrorResponse(http.StatusBadRequest, "parameter '%s' not of type int", key)
+				return nil, &echo.HTTPError{
+					Code:     http.StatusBadRequest,
+					Message:  fmt.Errorf("parameter '%s' not of type int", key),
+					Internal: err,
+				}
 			}
 
 			return result, err
@@ -77,7 +96,11 @@ func (api *ServiceBase) WithFloat(key string) HandlerFunc {
 
 			result, err := strconv.ParseFloat(param, bitSize)
 			if err != nil {
-				return nil, NewErrorResponse(http.StatusBadRequest, "parameter '%s' not of type float", key)
+				return nil, &echo.HTTPError{
+					Code:     http.StatusBadRequest,
+					Message:  fmt.Errorf("parameter '%s' not of type int", key),
+					Internal: err,
+				}
 			}
 
 			return result, err
@@ -102,9 +125,11 @@ func (api *ServiceBase) WithTime(key, layout string) HandlerFunc {
 		return api.getParam(ctx, key, func(param string) (interface{}, error) {
 			result, err := time.Parse(layout, param)
 			if err != nil {
-				return nil, NewErrorResponse(http.StatusBadRequest,
-					"could not parse '%s' param to datetime using '%s' layout", key, layout,
-				)
+				return nil, &echo.HTTPError{
+					Code:     http.StatusBadRequest,
+					Message:  fmt.Errorf("could not parse '%s' param to datetime using '%s' layout", key, layout),
+					Internal: err,
+				}
 			}
 
 			return result, err
