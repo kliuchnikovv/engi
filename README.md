@@ -11,7 +11,7 @@
 ## A web framework that prioritizes developer usability.
 
 ### Description
-This framework based on the [labstack echo](https://github.com/labstack/echo) framework and aims to write more structured, human-centric code.
+This framework aims to write more structured, human-centric code.
 
 ### Installation
 
@@ -82,10 +82,3 @@ func main() {
 ```
 
 Workable example of this api you can found [here](https://github.com/KlyuchnikovV/webapi/tree/main/example)
-
-### Some tips
- - inner `echo.Context` and `echo.Echo` available from `webapi.Context` and `webapi.Engine`
- - you can define methods using inner `echo.Echo` that will be workable
- - framework is in progress
-
-
