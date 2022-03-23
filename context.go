@@ -1,58 +1,85 @@
 package webapi
 
 import (
-	"github.com/labstack/echo"
+	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"io/ioutil"
+	"net/http"
 )
 
 // Context - provides methods for extracting data from query and response back.
 type Context struct {
-	Context echo.Context
-
-	QueryParams QueryParams
-	Response    Response
-
-	bodyRequested bool
-	body          interface{}
-
-	requestedParams map[string]struct{}
-	queryParameters map[string]interface{}
+	*Request
+	*Response
 }
 
 // NewContext - returns new Context instance from 'echo.Context'.
-func NewContext(ctx echo.Context) *Context {
-	var context = &Context{
-		Context:         ctx,
-		requestedParams: map[string]struct{}{},
-		queryParameters: map[string]interface{}{},
+func NewContext(
+	response http.ResponseWriter,
+	request *http.Request,
+	responseMarshaler MarshalerFunc,
+	responseObject Responser,
+) *Context {
+	return &Context{
+		Request:  NewRequest(request),
+		Response: NewResponse(response, responseMarshaler, responseObject),
+	}
+}
+
+func (ctx *Context) readBody() error {
+	defer ctx.request.Body.Close()
+
+	bytes, err := ioutil.ReadAll(ctx.request.Body)
+	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
+		return NewErrorResponse(http.StatusInternalServerError, "reading body failed: %s", err.Error())
 	}
 
-	context.QueryParams = NewQueryParams(context)
-	context.Response = NewResponse(context)
+	if len(bytes) != 0 {
+		ctx.body.raw = []string{string(bytes)}
+	}
 
-	return context
+	if len(ctx.body.raw) == 0 {
+		return NewErrorResponse(http.StatusBadRequest, "no required body provided")
+	}
+
+	return err
 }
 
-// PathParameter - retrieves path parameter by its name.
-func (ctx *Context) PathParameter(key string) string {
-	return ctx.Context.Param(key)
-}
-
-// AllPathParameters - return 'name - value' pairs of all path parameters.
-func (ctx *Context) AllPathParameters() map[string]string {
+func (ctx *Context) getUnmarshaler() (UnmarshalerFunc, error) {
 	var (
-		names  = ctx.Context.ParamNames()
-		result = make(map[string]string, len(names))
+		contentType = ctx.request.Header.Get("Content-type")
+		unmarshal   UnmarshalerFunc
 	)
 
-	for _, name := range names {
-		result[name] = ctx.Context.Param(name)
+	switch contentType {
+	case "application/json":
+		unmarshal = json.Unmarshal
+	case "application/xml":
+		unmarshal = xml.Unmarshal
+	case "text/plain":
+		unmarshal = func(b []byte, i interface{}) error {
+			typed, ok := i.(*string)
+			if !ok {
+				return NewErrorResponse(http.StatusInternalServerError, "pointer must be of type '*string'")
+			}
+
+			*typed = string(b)
+
+			return nil
+		}
+	default:
+		return nil, NewErrorResponse(http.StatusBadRequest, "content-type not supported: %s", contentType)
 	}
 
-	return result
-}
+	return func(bytes []byte, pointer interface{}) error {
+		if err := unmarshal(bytes, pointer); err != nil {
+			return NewErrorResponse(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
+		}
 
-// Body - returns query body.
-// Body must be requested by 'api.WithBody(pointer)'.
-func (ctx *Context) Body() interface{} {
-	return ctx.body
+		ctx.body.wasRequested = true
+		ctx.body.parsed = pointer
+
+		return nil
+	}, nil
 }

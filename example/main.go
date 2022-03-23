@@ -8,16 +8,22 @@ import (
 )
 
 func main() {
-	w := webapi.New()
+	w := webapi.New(
+		":8080",
+		// (*webapi.Engine).ResponseAsXML,
+		(*webapi.Engine).ResponseAsJSON,
+	)
+
+	// w.ObjectResponse(new(webapi.ResponseObject))
 
 	err := w.RegisterServices(
-		service.NewRequestAPI(),
+		service.NewRequestAPI(w),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = w.Start("localhost:8080")
+	err = w.Start()
 	if err != nil {
 		log.Fatal(err)
 	}

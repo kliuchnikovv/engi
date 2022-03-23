@@ -9,7 +9,7 @@ import (
 
 // Example service.
 type RequestAPI struct {
-	webapi.ServiceAPI
+	webapi.Service
 
 	// Bad practice in case of concurrency,
 	// but useful in this example.
@@ -21,9 +21,9 @@ type Body struct {
 	Field string `json:"field"`
 }
 
-func NewRequestAPI() webapi.ServiceAPI {
+func NewRequestAPI(engine *webapi.Engine) webapi.ServiceAPI {
 	return &RequestAPI{
-		ServiceAPI: webapi.NewService("request"),
+		Service: *webapi.NewService(engine, "request"),
 	}
 }
 
@@ -53,11 +53,13 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 }
 
 func (api *RequestAPI) Create(ctx *webapi.Context) error {
-	if body := ctx.QueryParams.Body(); body != nil {
+	if body := ctx.Body(); body != nil {
 		api.Request = *body.(*Body)
 	}
 
-	return ctx.Response.Created()
+	ctx.Response.Created()
+
+	return nil
 }
 
 func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
@@ -67,7 +69,7 @@ func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
 }
 
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-	var id = ctx.QueryParams.Integer("id")
+	var id = ctx.Request.Integer("id")
 
 	// Do something with id (we will check it)
 	if id < 0 {
@@ -79,11 +81,11 @@ func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
 
 func (api *RequestAPI) Filter(ctx *webapi.Context) error {
 	var (
-		i     = ctx.QueryParams.Integer("int")
-		str   = ctx.QueryParams.String("str")
-		t     = ctx.QueryParams.Time("time", "2006-01-02 15:04")
-		b     = ctx.QueryParams.Bool("bool")
-		float = ctx.QueryParams.Float("float")
+		i     = ctx.Request.Integer("int")
+		str   = ctx.Request.String("str")
+		t     = ctx.Request.Time("time", "2006-01-02 15:04")
+		b     = ctx.Request.Bool("bool")
+		float = ctx.Request.Float("float")
 	)
 
 	return ctx.Response.OK(fmt.Sprintf(
