@@ -8,13 +8,13 @@ import (
 // Response - provide methods for creating responses.
 type Response struct {
 	writer    http.ResponseWriter
-	marshaler ResponseMarshaler
+	marshaler MarshalerFunc
 	object    Responser
 }
 
 func NewResponse(
 	writer http.ResponseWriter,
-	marshaler ResponseMarshaler,
+	marshaler MarshalerFunc,
 	object Responser,
 ) *Response {
 	return &Response{

@@ -4,80 +4,32 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 )
 
-// TODO: errors and errors chan
-// TODO: logging
-// TODO: ServiceAPI methods refactor
-
-type ServiceAPI interface {
-	// PathPrefix - prefix of all paths for this service.
-	PathPrefix() string
-	// Routers returns the handlers and their relative paths (relative to the service) for registration.
-	Routers() map[string]RouterFunc
-
-	// GET - implements GET api method call.
-	GET(HandlerFunc, ...HandlerFunc) RouterFunc
-	// PUT - implements PUT api method call.
-	PUT(HandlerFunc, ...HandlerFunc) RouterFunc
-	// HEAD - implements HEAD api method call.
-	HEAD(HandlerFunc, ...HandlerFunc) RouterFunc
-	// POST - implements POST api method call.
-	POST(HandlerFunc, ...HandlerFunc) RouterFunc
-	// PATCH - implements PATCH api method call.
-	PATCH(HandlerFunc, ...HandlerFunc) RouterFunc
-	// TRACE - implements TRACE api method call.
-	TRACE(HandlerFunc, ...HandlerFunc) RouterFunc
-	// DELETE - implements DELETE api method call.
-	DELETE(HandlerFunc, ...HandlerFunc) RouterFunc
-	// CONNECT - implements CONNECT api method call.
-	CONNECT(HandlerFunc, ...HandlerFunc) RouterFunc
-	// OPTIONS - implements OPTIONS api method call.
-	OPTIONS(HandlerFunc, ...HandlerFunc) RouterFunc
-
-	// WithBody - takes pointer to structure and saves casted request body into context.
-	// Result can be retrieved from context using 'context.QueryParams.Body()'.
-	WithBody(interface{}) HandlerFunc
-	// WithBool - queries mandatory boolean parameter from request by 'key'.
-	// Result can be retrieved from context using 'context.QueryParams.Bool(key)'.
-	WithBool(key string) HandlerFunc
-	// WithInt - queries mandatory integer parameter from request by 'key'.
-	// Result can be retrieved from context using 'context.QueryParams.Integer(key)'.
-	WithInt(key string) HandlerFunc
-	// WithFloat - queries mandatory floating point number parameter from request by 'key'.
-	// Result can be retrieved from context using 'context.QueryParams.Float(key)'.
-	WithFloat(key string) HandlerFunc
-	// WithString - queries mandatory string parameter from request by 'key'.
-	// Result can be retrieved from context using 'context.QueryParams.String(key)'.
-	WithString(key string) HandlerFunc
-	// WithTime - queries mandatory time parameter from request by 'key' using 'layout'.
-	// Result can be retrieved from context using 'context.QueryParams.Time(key, layout)'.
-	WithTime(key, layout string) HandlerFunc
-
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-
-	bind(ResponseMarshaler, Responser)
-}
-
-type ResponseMarshaler func(interface{}) ([]byte, error)
-
 type Engine struct {
-	// *echo.Echo
-	mux *http.ServeMux
+	apiPrefix string
 
-	responseBinder ResponseMarshaler
-	responseObject Responser
+	server http.Server
+
+	responseMarshaler MarshalerFunc
+	responseObject    Responser
 
 	services []ServiceAPI
+
+	log *Log
 }
 
-func New(configs ...func(*Engine)) *Engine {
+func New(address string, configs ...func(*Engine)) *Engine {
 	e := &Engine{
-		responseBinder: json.Marshal,
-		responseObject: new(AsIsObject),
+		apiPrefix: "api",
+		server: http.Server{
+			Addr: address,
+		},
+		log:               NewLog(nil),
+		responseMarshaler: json.Marshal,
+		responseObject:    new(AsIsResponse),
 	}
 
 	for _, config := range configs {
@@ -91,52 +43,86 @@ func New(configs ...func(*Engine)) *Engine {
 func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 	e.services = services
 
-	e.mux = http.NewServeMux()
-
-	var prefix = "api"
+	var mux = http.NewServeMux()
 
 	for i := range e.services {
-		e.services[i].bind(e.responseBinder, e.responseObject)
-
-		var servicePrefix = fmt.Sprintf("/%s/%s/",
-			strings.Trim(prefix, "/"),
-			strings.Trim(e.services[i].PathPrefix(), "/"),
-		)
+		var servicePrefix = fmt.Sprintf("/%s/%s/", e.apiPrefix, e.services[i].PathPrefix())
 
 		for path, register := range e.services[i].Routers() {
-			register(fmt.Sprintf("%s%s",
-				servicePrefix,
-				strings.Trim(path, "/"),
-			))
+			register(fmt.Sprintf("%s%s", servicePrefix, strings.Trim(path, "/")))
 		}
 
-		e.mux.Handle(
+		mux.Handle(
 			servicePrefix,
 			e.services[i],
 		)
 	}
 
+	e.server.Handler = mux
+
 	return nil
 }
 
-func (e *Engine) Start(address string) error {
-	log.Print("WebApi started...")
+// Start listens on the TCP network address srv.Addr and then calls Serve to handle requests on incoming connections.
+// Accepted connections are configured to enable TCP keep-alives.
+//
+// If srv.Addr is blank, ":http" is used.
+//
+// Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
+func (e *Engine) Start() error {
+	e.log.Infof("WebApi started...")
 
-	return http.ListenAndServe(address, e.mux)
+	return e.server.ListenAndServe()
 }
 
+// Use - sets custom configuration function.
+func (e *Engine) Use(f func(*http.Server)) {
+	f(&e.server)
+}
+
+// WithPrefix - setting api's prefix.
+func (e *Engine) WithPrefix(prefix string) {
+	e.apiPrefix = strings.Trim(prefix, "/")
+}
+
+// ResponseAsJSON - serializes all responses as JSON.
 func (e *Engine) ResponseAsJSON() {
-	e.responseBinder = json.Marshal
+	e.responseMarshaler = json.Marshal
 }
 
+// ResponseAsXML - serializes all responses as XML.
 func (e *Engine) ResponseAsXML() {
-	e.responseBinder = xml.Marshal
+	e.responseMarshaler = func(i interface{}) ([]byte, error) {
+		bytes, err := xml.Marshal(i)
+		if err != nil {
+			return nil, err
+		}
+
+		// Should append header for proper visualization.
+		return append([]byte(xml.Header), bytes...), nil
+	}
 }
 
+// AsIsResponse - responses objects without wrapping.
 func (e *Engine) AsIsResponse() {
-	e.responseObject = new(AsIsObject)
+	e.responseObject = new(AsIsResponse)
 }
 
+// ObjectResponse - sets object as object to wrap response.
 func (e *Engine) ObjectResponse(object Responser) {
 	e.responseObject = object
+}
+
+// WithLogger - sets logger.
+func (e *Engine) WithLogger(log Logger) {
+	e.log = NewLog(log)
+}
+
+// WithSendingErrors - sets errors channel capacity.
+func (e *Engine) WithSendingErrors(capacity int) {
+	if e.log == nil {
+		e.log = NewLog(nil)
+	} else {
+		e.log.channel = make(chan error, capacity)
+	}
 }

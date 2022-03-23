@@ -1,13 +1,12 @@
 package webapi
 
 import (
+	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"io/ioutil"
 	"net/http"
 )
-
-type Binder interface {
-	Marshal(interface{}) ([]byte, error)
-	Unmarshal([]byte, interface{}) error
-}
 
 // Context - provides methods for extracting data from query and response back.
 type Context struct {
@@ -19,7 +18,7 @@ type Context struct {
 func NewContext(
 	response http.ResponseWriter,
 	request *http.Request,
-	responseMarshaler ResponseMarshaler,
+	responseMarshaler MarshalerFunc,
 	responseObject Responser,
 ) *Context {
 	return &Context{
@@ -28,28 +27,59 @@ func NewContext(
 	}
 }
 
-// PathParameter - retrieves path parameter by its name.
-// func (ctx *Context) PathParameter(key string) string {
-// 	// ctx.request.URL.Query()
-// 	return ctx.Context.Param(key)
-// }
+func (ctx *Context) readBody() error {
+	defer ctx.request.Body.Close()
 
-// // AllPathParameters - return 'name - value' pairs of all path parameters.
-// func (ctx *Context) AllPathParameters() map[string]string {
-// 	var (
-// 		names  = ctx.Context.ParamNames()
-// 		result = make(map[string]string, len(names))
-// 	)
+	bytes, err := ioutil.ReadAll(ctx.request.Body)
+	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
+		return NewErrorResponse(http.StatusInternalServerError, "reading body failed: %s", err.Error())
+	}
 
-// 	for _, name := range names {
-// 		result[name] = ctx.Context.Param(name)
-// 	}
+	if len(bytes) != 0 {
+		ctx.body.raw = []string{string(bytes)}
+	}
 
-// 	return result
-// }
+	if len(ctx.body.raw) == 0 {
+		return NewErrorResponse(http.StatusBadRequest, "no required body provided")
+	}
 
-// // Body - returns query body.
-// // Body must be requested by 'api.WithBody(pointer)'.
-// func (ctx *Context) Body() interface{} {
-// 	return ctx.body
-// }
+	return err
+}
+
+func (ctx *Context) getUnmarshaler() (UnmarshalerFunc, error) {
+	var (
+		contentType = ctx.request.Header.Get("Content-type")
+		unmarshal   UnmarshalerFunc
+	)
+
+	switch contentType {
+	case "application/json":
+		unmarshal = json.Unmarshal
+	case "application/xml":
+		unmarshal = xml.Unmarshal
+	case "text/plain":
+		unmarshal = func(b []byte, i interface{}) error {
+			typed, ok := i.(*string)
+			if !ok {
+				return NewErrorResponse(http.StatusInternalServerError, "pointer must be of type '*string'")
+			}
+
+			*typed = string(b)
+
+			return nil
+		}
+	default:
+		return nil, NewErrorResponse(http.StatusBadRequest, "content-type not supported: %s", contentType)
+	}
+
+	return func(bytes []byte, pointer interface{}) error {
+		if err := unmarshal(bytes, pointer); err != nil {
+			return NewErrorResponse(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
+		}
+
+		ctx.body.wasRequested = true
+		ctx.body.parsed = pointer
+
+		return nil
+	}, nil
+}

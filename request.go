@@ -1,25 +1,11 @@
 package webapi
 
 import (
-	"encoding/json"
-	"encoding/xml"
-	"errors"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
-
-type parameter struct {
-	raw string
-
-	wasRequested bool
-	parsed       interface{}
-}
-
-// TODO: rename to request?
 
 // Request - provide methods for extracting r parameters from context.
 type Request struct {
@@ -40,7 +26,7 @@ func NewRequest(request *http.Request) *Request {
 
 	for key, param := range parameters {
 		r.parameters[key] = parameter{
-			raw: param[0], // TODO: save slice
+			raw: param,
 		}
 	}
 
@@ -105,12 +91,7 @@ func (r *Request) String(key string) string {
 		return r.parameters[key].parsed.(string)
 	}
 
-	param, ok := r.parameters[key]
-	if !ok {
-		return ""
-	}
-
-	return param.raw
+	return r.getParam(key)
 }
 
 // Time - returns boolean parameter.
@@ -130,15 +111,23 @@ func (r *Request) Time(key, layout string) time.Time {
 func (r *Request) All() map[string]string {
 	var parameters = make(map[string]string)
 
-	for name, param := range r.parameters {
-		parameters[name] = param.raw
+	for name := range r.parameters {
+		parameters[name] = r.getParam(name)
 	}
 
 	return parameters
 }
 
 func (r *Request) getParam(key string) string {
-	return r.parameters[key].raw
+	if _, ok := r.parameters[key]; !ok {
+		return ""
+	}
+
+	if len(r.parameters[key].raw) > 1 {
+		return strings.Join(r.parameters[key].raw, ", ")
+	}
+
+	return r.parameters[key].raw[0]
 }
 
 func (r *Request) updateParam(key string, value interface{}) {
@@ -150,51 +139,8 @@ func (r *Request) updateParam(key string, value interface{}) {
 	r.parameters[key] = param
 }
 
-// TODO: refactor
-func (r *Request) Bind(pointer interface{}) error {
-	defer r.request.Body.Close()
-
-	bytes, err := ioutil.ReadAll(r.request.Body)
-	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
-		return err
-	}
-
-	if len(bytes) != 0 {
-		r.body.raw = string(bytes)
-	}
-
-	if len(r.body.raw) == 0 {
-		return fmt.Errorf("no body provided")
-	}
-
-	if r.body.parsed != nil {
-		return nil
-	}
-
-	var (
-		ct          = r.request.Header.Get("Content-type")
-		unmarshaler func([]byte, interface{}) error
-	)
-
-	switch ct {
-	case "application/json":
-		unmarshaler = json.Unmarshal
-	case "application/xml":
-		unmarshaler = xml.Unmarshal
-	default:
-		return fmt.Errorf("content-type not supported: %s", ct)
-	}
-
-	if err := unmarshaler([]byte(r.body.raw), pointer); err != nil {
-		return err
-	}
-
-	r.body.wasRequested = true
-	r.body.parsed = pointer
-
-	return nil
-}
-
+// Body - returns request body.
+// Body must be requested by 'api.WithBody(pointer)'.
 func (r *Request) Body() interface{} {
 	return r.body.parsed
 }

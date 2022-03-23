@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	webapi "github.com/KlyuchnikovV/webapi/api"
+	"github.com/KlyuchnikovV/webapi"
 )
 
 // Example service.
 type RequestAPI struct {
-	webapi.ServiceAPI
+	webapi.Service
 
 	// Bad practice in case of concurrency,
 	// but useful in this example.
@@ -21,9 +21,9 @@ type Body struct {
 	Field string `json:"field"`
 }
 
-func NewRequestAPI() webapi.ServiceAPI {
+func NewRequestAPI(engine *webapi.Engine) webapi.ServiceAPI {
 	return &RequestAPI{
-		ServiceAPI: webapi.NewService("request"),
+		Service: *webapi.NewService(engine, "request"),
 	}
 }
 

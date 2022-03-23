@@ -3,25 +3,27 @@ package main
 import (
 	"log"
 
-	webapi "github.com/KlyuchnikovV/webapi/api"
-	"github.com/KlyuchnikovV/webapi/api/example/service"
+	"github.com/KlyuchnikovV/webapi"
+	"github.com/KlyuchnikovV/webapi/example/service"
 )
 
 func main() {
 	w := webapi.New(
-		(*webapi.Engine).ResponseAsXML,
+		":8080",
+		// (*webapi.Engine).ResponseAsXML,
+		(*webapi.Engine).ResponseAsJSON,
 	)
 
-	w.ObjectResponse(new(webapi.ResponseObject))
+	// w.ObjectResponse(new(webapi.ResponseObject))
 
 	err := w.RegisterServices(
-		service.NewRequestAPI(),
+		service.NewRequestAPI(w),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = w.Start(":8080")
+	err = w.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
