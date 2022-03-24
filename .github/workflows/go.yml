@@ -47,7 +47,6 @@ jobs:
       - uses: martialonline/workflow-status@v2
         id: check
       - uses: KlyuchnikovV/telegram-notify@v0.1.9
-        if: always()
         with:
           chat_id: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
