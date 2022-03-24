@@ -83,3 +83,53 @@ func (ctx *Context) getUnmarshaler() (UnmarshalerFunc, error) {
 		return nil
 	}, nil
 }
+
+// extractParam - extracting parameter from context, calls middleware and saves to 'context.queryParameters[key]'.
+// After this parameter can be retrieved from context using 'context.Query' methods.
+func (ctx *Context) extractParam(
+	key string,
+	configs []ParameterConfig,
+	convert func(string) (interface{}, error),
+) error {
+	var param = ctx.Request.getParamValue(key)
+	if len(param) == 0 {
+		return NewErrorResponse(http.StatusBadRequest, "parameter '%s' not found", key)
+	}
+
+	result, err := convert(param)
+	if err != nil {
+		return err
+	}
+
+	if result != nil {
+		ctx.Request.initParamValue(key, result)
+	}
+
+	var parameter = ctx.getParam(key)
+	for _, config := range configs {
+		if err := config(&parameter); err != nil {
+			return err
+		}
+	}
+
+	ctx.updateParam(key, parameter)
+
+	return nil
+}
+
+func (ctx *Context) extractBody(unmarshaler UnmarshalerFunc, pointer interface{}) error {
+	if ctx.body.parsed != nil {
+		// If already parsed - skip parsing
+		return nil
+	}
+
+	if err := ctx.readBody(); err != nil {
+		return err
+	}
+
+	if len(ctx.body.raw) == 0 {
+		return NewErrorResponse(http.StatusInternalServerError, "no body found after reading")
+	}
+
+	return unmarshaler([]byte(ctx.body.raw[0]), pointer)
+}

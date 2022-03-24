@@ -31,23 +31,26 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 	return map[string]webapi.RouterFunc{
 		"get": api.GET(
 			api.GetByID,
-			api.WithInt("id"),
+			webapi.WithInteger("id",
+				webapi.Description("id of request"),
+				webapi.AND(webapi.Greater(1), webapi.Less(10)),
+			),
 		),
 		"create": api.POST(
 			api.Create,
-			api.WithBody(&Body{}),
+			webapi.WithBody(&Body{}),
 		),
 		"create/sub-request": api.POST(
 			api.CreateSubRequest,
-			api.WithBody(&api.SubRequest),
+			webapi.WithBody(&api.SubRequest),
 		),
 		"filter": api.GET(
 			api.Filter,
-			api.WithBool("bool"),
-			api.WithInt("int"),
-			api.WithFloat("float"),
-			api.WithString("str"),
-			api.WithTime("time", "2006-01-02 15:04"),
+			webapi.WithBool("bool"),
+			webapi.WithFloat("float"),
+			webapi.WithString("str"),
+			webapi.WithInteger("int"),
+			webapi.WithTime("time", "2006-01-02 15:04"),
 		),
 	}
 }

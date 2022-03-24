@@ -26,7 +26,8 @@ func NewRequest(request *http.Request) *Request {
 
 	for key, param := range parameters {
 		r.parameters[key] = parameter{
-			raw: param,
+			name: key,
+			raw:  param,
 		}
 	}
 
@@ -41,7 +42,9 @@ func (r *Request) Bool(key string) bool {
 		return r.parameters[key].parsed.(bool)
 	}
 
-	return strings.ToLower(r.String(key)) == "true"
+	result, _ := strconv.ParseBool(r.String(key))
+
+	return result
 }
 
 // Integer - returns integer parameter.
@@ -91,7 +94,7 @@ func (r *Request) String(key string) string {
 		return r.parameters[key].parsed.(string)
 	}
 
-	return r.getParam(key)
+	return r.getParamValue(key)
 }
 
 // Time - returns boolean parameter.
@@ -112,13 +115,19 @@ func (r *Request) All() map[string]string {
 	var parameters = make(map[string]string)
 
 	for name := range r.parameters {
-		parameters[name] = r.getParam(name)
+		parameters[name] = r.getParamValue(name)
 	}
 
 	return parameters
 }
 
-func (r *Request) getParam(key string) string {
+// Body - returns request body.
+// Body must be requested by 'api.WithBody(pointer)'.
+func (r *Request) Body() interface{} {
+	return r.body.parsed
+}
+
+func (r *Request) getParamValue(key string) string {
 	if _, ok := r.parameters[key]; !ok {
 		return ""
 	}
@@ -130,17 +139,20 @@ func (r *Request) getParam(key string) string {
 	return r.parameters[key].raw[0]
 }
 
-func (r *Request) updateParam(key string, value interface{}) {
+func (r *Request) initParamValue(key string, value interface{}) {
 	param := r.parameters[key]
 
 	param.wasRequested = true
 	param.parsed = value
 
-	r.parameters[key] = param
+	r.updateParam(key, param)
 }
 
-// Body - returns request body.
-// Body must be requested by 'api.WithBody(pointer)'.
-func (r *Request) Body() interface{} {
-	return r.body.parsed
+func (r *Request) getParam(key string) parameter {
+	return r.parameters[key]
+}
+
+func (r *Request) updateParam(key string, p parameter) {
+	p.name = key
+	r.parameters[key] = p
 }

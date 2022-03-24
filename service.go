@@ -100,10 +100,12 @@ func (api *Service) Add(
 		return
 	}
 
-	api.routes[method][path] = func(ctx *Context) {
-		var (
-			response ResponseObject
-		)
+	api.routes[method][path] = api.route(handler, middlewares...)
+}
+
+func (api *Service) route(handler HandlerFunc, middlewares ...HandlerFunc) ResultFunc {
+	return func(ctx *Context) {
+		var response ResponseObject
 
 		for _, middleware := range api.middlewares {
 			if err := middleware(ctx); err != nil {
@@ -133,8 +135,6 @@ func (api *Service) Add(
 			if err := ctx.InternalServerError(err.Error()); err != nil {
 				api.log.SendErrorf(err.Error())
 			}
-
-			return
 		}
 	}
 }

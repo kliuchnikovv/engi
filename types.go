@@ -13,10 +13,14 @@ type (
 	HandlerFunc     func(*Context) error
 	MarshalerFunc   func(interface{}) ([]byte, error)
 	UnmarshalerFunc func([]byte, interface{}) error
+	ParameterConfig func(*parameter) error
 	parameter       struct {
 		raw          []string
 		parsed       interface{}
 		wasRequested bool
+
+		name        string
+		description string
 	}
 )
 
