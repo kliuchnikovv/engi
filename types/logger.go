@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"log"
+	basicLog "log"
 )
 
 type (
@@ -24,30 +24,35 @@ func NewLog(logger Logger) *Log {
 	}
 }
 
-func (e *Log) SendErrorf(format string, args ...interface{}) {
-	if e.channel != nil {
-		e.channel <- fmt.Errorf(format, args...)
-	}
-
-	e.Errorf(format, args...)
+func (log *Log) Channel() chan error {
+	return log.channel
 }
 
-func (e *Log) Infof(format string, args ...interface{}) {
-	if e.Logger == nil {
-		log.Printf(format, args...)
+// SendErrorf - sends error to channel and writes it in log.
+func (log *Log) SendErrorf(format string, args ...interface{}) {
+	if log.channel != nil {
+		log.channel <- fmt.Errorf(format, args...)
+	}
+
+	log.Errorf(format, args...)
+}
+
+func (log *Log) Infof(format string, args ...interface{}) {
+	if log.Logger == nil {
+		basicLog.Printf(format, args...)
 	} else {
-		e.Logger.Infof(format, args...)
+		log.Logger.Infof(format, args...)
 	}
 }
 
-func (e *Log) Errorf(format string, args ...interface{}) {
-	if e.Logger == nil {
-		log.Printf("ERROR: %s", fmt.Sprintf(format, args...))
+func (log *Log) Errorf(format string, args ...interface{}) {
+	if log.Logger == nil {
+		basicLog.Printf("ERROR: %s", fmt.Sprintf(format, args...))
 	} else {
-		e.Logger.Errorf(format, args...)
+		log.Logger.Errorf(format, args...)
 	}
 }
 
-func (e *Log) SetChannelCapacity(capacity int) {
-	e.channel = make(chan error, capacity)
+func (log *Log) SetChannelCapacity(capacity int) {
+	log.channel = make(chan error, capacity)
 }

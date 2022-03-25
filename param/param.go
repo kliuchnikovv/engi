@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KlyuchnikovV/webapi/types"
@@ -121,6 +122,8 @@ func WithCustomBody(unmarshal types.Unmarshaler, pointer interface{}) HandlersOp
 	}
 }
 
+// Description - adds string description to parameter.
+// Can be used in errors description or in documentation.
 func Description(s string) ParametersOption {
 	return func(p *Parameter) error {
 		p.description = s
@@ -129,6 +132,8 @@ func Description(s string) ParametersOption {
 	}
 }
 
+// NotEmpty - checks if parameter is not empty by it's type.
+// NOTE: boolean parameter will be ignored.
 func NotEmpty(p *Parameter) error {
 	var isNotEmpty func() bool
 
@@ -155,6 +160,11 @@ func NotEmpty(p *Parameter) error {
 	)
 }
 
+// Greater - checks if parameter greater than a number.
+// NOTES:
+//    - for 'int' and 'float' parameters - simple values comparison;
+//    - for 'string' - comparing with it's length;
+//    - for 'time' - comparing with time.Unix() value in seconds;
 func Greater(than float64) ParametersOption {
 	return func(p *Parameter) error {
 		var greater func() bool
@@ -167,7 +177,7 @@ func Greater(than float64) ParametersOption {
 		case string:
 			greater = func() bool { return len(typed) > int(than) }
 		case time.Time:
-			greater = func() bool { return typed.UnixNano() > int64(than) }
+			greater = func() bool { return typed.Unix() > int64(than) }
 		}
 
 		if greater() {
@@ -180,6 +190,11 @@ func Greater(than float64) ParametersOption {
 	}
 }
 
+// Less - checks if parameter less than a number.
+// NOTES:
+//    - for 'int' and 'float' parameters - simple values comparison;
+//    - for 'string' - comparing with it's length;
+//    - for 'time' - comparing with time.Unix() value in seconds;
 func Less(than float64) ParametersOption {
 	return func(p *Parameter) error {
 		var greater func() bool
@@ -205,48 +220,50 @@ func Less(than float64) ParametersOption {
 	}
 }
 
-func OR(first, second ParametersOption) ParametersOption {
+// OR - combines several parameter checks and passes if one of them successful.
+func OR(options ...ParametersOption) ParametersOption {
 	return func(p *Parameter) error {
 		var (
-			err1 = first(p)
-			err2 = second(p)
+			passed bool
+			errs   []string
 		)
 
-		if err1 == nil || err2 == nil {
+		for _, option := range options {
+			if err := option(p); err == nil {
+				passed = true
+				break
+			} else {
+				errs = append(errs, err.Error())
+			}
+		}
+
+		if passed {
 			return nil
 		}
 
 		return types.NewErrorResponse(http.StatusBadRequest,
-			"'%s' failed checks: %s and %s", p.name, err1, err2,
+			"'%s' failed check: %s", p.name, strings.Join(errs, " and "),
 		)
 	}
 }
 
-func AND(first, second ParametersOption) ParametersOption {
+// AND - combines several parameter checks and failing if one of them failed.
+func AND(options ...ParametersOption) ParametersOption {
 	return func(p *Parameter) error {
-		var (
-			err1 = first(p)
-			err2 = second(p)
-		)
+		var err error
 
-		if err1 == nil && err2 == nil {
+		for _, option := range options {
+			if err = option(p); err != nil {
+				break
+			}
+		}
+
+		if err == nil {
 			return nil
 		}
 
-		if err1 != nil && err2 != nil {
-			return types.NewErrorResponse(http.StatusBadRequest,
-				"'%s' failed checks: %s and %s", p.name, err1, err2,
-			)
-		}
-
-		if err1 != nil {
-			return types.NewErrorResponse(http.StatusBadRequest,
-				"'%s' failed check: %s", p.name, err1,
-			)
-		}
-
 		return types.NewErrorResponse(http.StatusBadRequest,
-			"'%s' failed check: %s", p.name, err2,
+			"'%s' failed check: %s", p.name, err,
 		)
 	}
 }
