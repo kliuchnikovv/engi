@@ -1,4 +1,4 @@
-package webapi
+package param
 
 import (
 	"net/http"
@@ -11,8 +11,8 @@ import (
 type Request struct {
 	request *http.Request
 
-	body       parameter
-	parameters map[string]parameter
+	body       Parameter
+	parameters map[string]Parameter
 }
 
 func NewRequest(request *http.Request) *Request {
@@ -20,12 +20,12 @@ func NewRequest(request *http.Request) *Request {
 		parameters = request.URL.Query()
 		r          = Request{
 			request:    request,
-			parameters: make(map[string]parameter, len(parameters)),
+			parameters: make(map[string]Parameter, len(parameters)),
 		}
 	)
 
 	for key, param := range parameters {
-		r.parameters[key] = parameter{
+		r.parameters[key] = Parameter{
 			name: key,
 			raw:  param,
 		}
@@ -94,7 +94,7 @@ func (r *Request) String(key string) string {
 		return r.parameters[key].parsed.(string)
 	}
 
-	return r.getParamValue(key)
+	return r.getParameter(key)
 }
 
 // Time - returns boolean parameter.
@@ -115,19 +115,19 @@ func (r *Request) All() map[string]string {
 	var parameters = make(map[string]string)
 
 	for name := range r.parameters {
-		parameters[name] = r.getParamValue(name)
+		parameters[name] = r.getParameter(name)
 	}
 
 	return parameters
 }
 
 // Body - returns request body.
-// Body must be requested by 'api.WithBody(pointer)'.
+// Body must be requested by 'api.WithBody(pointer)' or 'api.WithCustomBody(unmarshaler, pointer)'.
 func (r *Request) Body() interface{} {
 	return r.body.parsed
 }
 
-func (r *Request) getParamValue(key string) string {
+func (r *Request) getParameter(key string) string {
 	if _, ok := r.parameters[key]; !ok {
 		return ""
 	}
@@ -137,22 +137,4 @@ func (r *Request) getParamValue(key string) string {
 	}
 
 	return r.parameters[key].raw[0]
-}
-
-func (r *Request) initParamValue(key string, value interface{}) {
-	param := r.parameters[key]
-
-	param.wasRequested = true
-	param.parsed = value
-
-	r.updateParam(key, param)
-}
-
-func (r *Request) getParam(key string) parameter {
-	return r.parameters[key]
-}
-
-func (r *Request) updateParam(key string, p parameter) {
-	p.name = key
-	r.parameters[key] = p
 }
