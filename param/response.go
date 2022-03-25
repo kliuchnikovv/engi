@@ -1,21 +1,23 @@
-package webapi
+package param
 
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/KlyuchnikovV/webapi/types"
 )
 
 // Response - provide methods for creating responses.
 type Response struct {
 	writer    http.ResponseWriter
-	marshaler MarshalerFunc
-	object    Responser
+	marshaler types.Marshaler
+	object    types.Responser
 }
 
 func NewResponse(
 	writer http.ResponseWriter,
-	marshaler MarshalerFunc,
-	object Responser,
+	marshaler types.Marshaler,
+	object types.Responser,
 ) *Response {
 	return &Response{
 		writer:    writer,

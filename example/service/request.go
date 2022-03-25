@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/KlyuchnikovV/webapi"
+	"github.com/KlyuchnikovV/webapi/param"
 )
 
 // Example service.
@@ -27,27 +28,30 @@ func NewRequestAPI(engine *webapi.Engine) webapi.ServiceAPI {
 	}
 }
 
-func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
-	return map[string]webapi.RouterFunc{
+func (api *RequestAPI) Routers() map[string]webapi.RouterByPath {
+	return map[string]webapi.RouterByPath{
 		"get": api.GET(
 			api.GetByID,
-			api.WithInt("id"),
+			param.WithInteger("id",
+				param.Description("id of request"),
+				param.AND(param.Greater(1), param.Less(10)),
+			),
 		),
 		"create": api.POST(
 			api.Create,
-			api.WithBody(&Body{}),
+			param.WithBody(&Body{}),
 		),
 		"create/sub-request": api.POST(
 			api.CreateSubRequest,
-			api.WithBody(&api.SubRequest),
+			param.WithBody(&api.SubRequest),
 		),
 		"filter": api.GET(
 			api.Filter,
-			api.WithBool("bool"),
-			api.WithInt("int"),
-			api.WithFloat("float"),
-			api.WithString("str"),
-			api.WithTime("time", "2006-01-02 15:04"),
+			param.WithBool("bool"),
+			param.WithFloat("float"),
+			param.WithString("str"),
+			param.WithInteger("int"),
+			param.WithTime("time", "2006-01-02 15:04"),
 		),
 	}
 }

@@ -6,19 +6,22 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/KlyuchnikovV/webapi/types"
 )
 
+// Engine - server provider.
 type Engine struct {
 	apiPrefix string
 
 	server http.Server
 
-	responseMarshaler MarshalerFunc
-	responseObject    Responser
+	responseMarshaler types.Marshaler
+	responseObject    types.Responser
 
 	services []ServiceAPI
 
-	log *Log
+	log *types.Log
 }
 
 func New(address string, configs ...func(*Engine)) *Engine {
@@ -27,9 +30,9 @@ func New(address string, configs ...func(*Engine)) *Engine {
 		server: http.Server{
 			Addr: address,
 		},
-		log:               NewLog(nil),
+		log:               types.NewLog(nil),
 		responseMarshaler: json.Marshal,
-		responseObject:    new(AsIsResponse),
+		responseObject:    new(types.AsIsResponse),
 	}
 
 	for _, config := range configs {
@@ -80,17 +83,17 @@ func (e *Engine) Use(f func(*http.Server)) {
 	f(&e.server)
 }
 
-// WithPrefix - setting api's prefix.
+// WithPrefix - sets api's prefix.
 func (e *Engine) WithPrefix(prefix string) {
 	e.apiPrefix = strings.Trim(prefix, "/")
 }
 
-// ResponseAsJSON - serializes all responses as JSON.
+// ResponseAsJSON - tells server to serialize all responses as JSON.
 func (e *Engine) ResponseAsJSON() {
 	e.responseMarshaler = json.Marshal
 }
 
-// ResponseAsXML - serializes all responses as XML.
+// ResponseAsXML - tells server to serialize all responses as XML.
 func (e *Engine) ResponseAsXML() {
 	e.responseMarshaler = func(i interface{}) ([]byte, error) {
 		bytes, err := xml.Marshal(i)
@@ -103,26 +106,26 @@ func (e *Engine) ResponseAsXML() {
 	}
 }
 
-// AsIsResponse - responses objects without wrapping.
+// AsIsResponse - tells server to response objects without wrapping.
 func (e *Engine) AsIsResponse() {
-	e.responseObject = new(AsIsResponse)
+	e.responseObject = new(types.AsIsResponse)
 }
 
-// ObjectResponse - sets object as object to wrap response.
-func (e *Engine) ObjectResponse(object Responser) {
+// ObjectResponse - tells server to use object as wrapper for all responses.
+func (e *Engine) ObjectResponse(object types.Responser) {
 	e.responseObject = object
 }
 
-// WithLogger - sets logger.
-func (e *Engine) WithLogger(log Logger) {
-	e.log = NewLog(log)
+// WithLogger - sets custom logger.
+func (e *Engine) WithLogger(log types.Logger) {
+	e.log = types.NewLog(log)
 }
 
 // WithSendingErrors - sets errors channel capacity.
 func (e *Engine) WithSendingErrors(capacity int) {
 	if e.log == nil {
-		e.log = NewLog(nil)
+		e.log = types.NewLog(nil)
 	} else {
-		e.log.channel = make(chan error, capacity)
+		e.log.SetChannelCapacity(capacity)
 	}
 }

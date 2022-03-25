@@ -1,4 +1,4 @@
-package webapi
+package param
 
 import (
 	"net/http"
@@ -11,8 +11,8 @@ import (
 type Request struct {
 	request *http.Request
 
-	body       parameter
-	parameters map[string]parameter
+	body       Parameter
+	parameters map[string]Parameter
 }
 
 func NewRequest(request *http.Request) *Request {
@@ -20,13 +20,14 @@ func NewRequest(request *http.Request) *Request {
 		parameters = request.URL.Query()
 		r          = Request{
 			request:    request,
-			parameters: make(map[string]parameter, len(parameters)),
+			parameters: make(map[string]Parameter, len(parameters)),
 		}
 	)
 
 	for key, param := range parameters {
-		r.parameters[key] = parameter{
-			raw: param,
+		r.parameters[key] = Parameter{
+			name: key,
+			raw:  param,
 		}
 	}
 
@@ -41,7 +42,9 @@ func (r *Request) Bool(key string) bool {
 		return r.parameters[key].parsed.(bool)
 	}
 
-	return strings.ToLower(r.String(key)) == "true"
+	result, _ := strconv.ParseBool(r.String(key))
+
+	return result
 }
 
 // Integer - returns integer parameter.
@@ -91,7 +94,7 @@ func (r *Request) String(key string) string {
 		return r.parameters[key].parsed.(string)
 	}
 
-	return r.getParam(key)
+	return r.getParameter(key)
 }
 
 // Time - returns boolean parameter.
@@ -112,13 +115,19 @@ func (r *Request) All() map[string]string {
 	var parameters = make(map[string]string)
 
 	for name := range r.parameters {
-		parameters[name] = r.getParam(name)
+		parameters[name] = r.getParameter(name)
 	}
 
 	return parameters
 }
 
-func (r *Request) getParam(key string) string {
+// Body - returns request body.
+// Body must be requested by 'api.WithBody(pointer)' or 'api.WithCustomBody(unmarshaler, pointer)'.
+func (r *Request) Body() interface{} {
+	return r.body.parsed
+}
+
+func (r *Request) getParameter(key string) string {
 	if _, ok := r.parameters[key]; !ok {
 		return ""
 	}
@@ -128,19 +137,4 @@ func (r *Request) getParam(key string) string {
 	}
 
 	return r.parameters[key].raw[0]
-}
-
-func (r *Request) updateParam(key string, value interface{}) {
-	param := r.parameters[key]
-
-	param.wasRequested = true
-	param.parsed = value
-
-	r.parameters[key] = param
-}
-
-// Body - returns request body.
-// Body must be requested by 'api.WithBody(pointer)'.
-func (r *Request) Body() interface{} {
-	return r.body.parsed
 }
