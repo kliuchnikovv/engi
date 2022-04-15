@@ -11,15 +11,15 @@ import (
 // Example service.
 type RequestAPI struct {
 	webapi.Service
-
-	// Bad practice in case of concurrency,
-	// but useful in this example.
-	Request    Body
-	SubRequest Body
 }
 
 type Body struct {
-	Field string `json:"field"`
+	String       string      `json:"field"`
+	Integer      int         `json:"integer"`
+	Array        []Body      `json:"array"`
+	SimpleArray  []string    `json:"simple_array"`
+	ArrayOfArray [][]float32 `json:"array_of_array"`
+	WithoutTag   float64
 }
 
 func NewRequestAPI(engine *webapi.Engine) webapi.ServiceAPI {
@@ -28,12 +28,13 @@ func NewRequestAPI(engine *webapi.Engine) webapi.ServiceAPI {
 	}
 }
 
+// Should contain only return statement for documentation.
 func (api *RequestAPI) Routers() map[string]webapi.RouterByPath {
 	return map[string]webapi.RouterByPath{
 		"get": api.GET(
 			api.GetByID,
 			param.WithInteger("id",
-				param.Description("id of request"),
+				param.Description("ID of request."),
 				param.AND(param.Greater(1), param.Less(10)),
 			),
 		),
@@ -43,22 +44,27 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterByPath {
 		),
 		"create/sub-request": api.POST(
 			api.CreateSubRequest,
-			param.WithBody(&api.SubRequest),
+			param.WithBody([]Body{}),
 		),
 		"filter": api.GET(
 			api.Filter,
 			param.WithBool("bool"),
-			param.WithFloat("float"),
-			param.WithString("str"),
+			param.WithFloat("float", param.NotEmpty),
+			param.WithString("str",
+				param.AND(param.NotEmpty, param.Greater(2)),
+			),
 			param.WithInteger("int"),
-			param.WithTime("time", "2006-01-02 15:04"),
+			param.WithTime("time",
+				"2006-01-02 15:04",
+				param.Description("Filter by time field."),
+			),
 		),
 	}
 }
 
 func (api *RequestAPI) Create(ctx *webapi.Context) error {
 	if body := ctx.Body(); body != nil {
-		api.Request = *body.(*Body)
+		return ctx.Response.OK(body)
 	}
 
 	ctx.Response.Created()
@@ -68,7 +74,7 @@ func (api *RequestAPI) Create(ctx *webapi.Context) error {
 
 func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {
 	return ctx.Response.WithJSON(http.StatusCreated,
-		fmt.Sprintf("sub request created with body %#v", api.SubRequest),
+		fmt.Sprintf("sub request created with body %#v", []Body{}),
 	)
 }
 
