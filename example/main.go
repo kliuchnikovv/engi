@@ -4,7 +4,8 @@ import (
 	"log"
 
 	"github.com/KlyuchnikovV/webapi"
-	"github.com/KlyuchnikovV/webapi/example/service"
+	service "github.com/KlyuchnikovV/webapi/example/services"
+	"github.com/KlyuchnikovV/webapi/types"
 )
 
 func main() {
@@ -14,10 +15,13 @@ func main() {
 		(*webapi.Engine).ResponseAsJSON,
 	)
 
-	// w.ObjectResponse(new(webapi.ResponseObject))
+	// w.WithPrefix("server")
+
+	w.ObjectResponse(new(types.AsIsResponse))
 
 	err := w.RegisterServices(
 		service.NewRequestAPI(w),
+		service.NewNotesAPI(w),
 	)
 	if err != nil {
 		log.Fatal(err)

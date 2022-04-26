@@ -2,18 +2,22 @@ package webapi
 
 import (
 	"errors"
-	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/KlyuchnikovV/webapi/param"
 	"github.com/KlyuchnikovV/webapi/types"
 )
 
+var parameterRegexp = regexp.MustCompile("{[a-zA-Z]*}")
+
 type (
+	//go:webapi <service name>
 	ServiceAPI interface {
 		// Routers returns the handlers and their relative paths (relative to the service) for registration.
 		//	Must be implemented by Service
+		//go:webapi <service method>
 		Routers() map[string]RouterByPath
 
 		// PathPrefix - prefix of all paths for this service.
@@ -28,6 +32,7 @@ type (
 	}
 
 	// Service - provides basic service methods.
+	//go:webapi
 	Service struct {
 		prefix string
 
@@ -42,6 +47,7 @@ type (
 	}
 )
 
+//go:webapi (_, prefix)
 func NewService(engine *Engine, prefix string) *Service {
 	return &Service{
 		prefix:   strings.Trim(prefix, "/"),
@@ -51,6 +57,10 @@ func NewService(engine *Engine, prefix string) *Service {
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
 	}
+}
+
+func (api *Service) Routers() map[string]RouterByPath {
+	return nil
 }
 
 // PathPrefix - prefix of all paths for this service.
@@ -64,8 +74,6 @@ func (api *Service) PathPrefix() string {
 // Request.Body after or concurrently with the completion of the
 // ServeHTTP call.
 func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Method: %s, path: %s\n", r.Method, r.URL.Path)
-
 	var ctx = NewContext(w, r, api.marshaler, api.responser)
 
 	if _, ok := api.handlers[r.Method]; !ok {
@@ -76,16 +84,21 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler, ok := api.handlers[r.Method][r.URL.Path]
-	if !ok {
-		if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-			api.log.SendErrorf(err.Error())
-		}
-
+	if handler, ok := api.handlers[r.Method][r.URL.Path]; ok {
+		handler(ctx)
 		return
 	}
 
-	handler(ctx)
+	for path, handler := range api.handlers[r.Method] {
+		if regexp.MustCompile(path).MatchString(r.URL.Path) {
+			handler(ctx)
+			return
+		}
+	}
+
+	if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
+		api.log.SendErrorf(err.Error())
+	}
 }
 
 // Add - creates route with custom method and path.
@@ -94,6 +107,11 @@ func (api *Service) Add(
 	route Route,
 	middlewares ...param.HandlersOption,
 ) {
+	if strings.ContainsAny(path, "{}") {
+		middlewares = append([]param.HandlersOption{parseInPathParameters(path)}, middlewares...)
+		path = parameterRegexp.ReplaceAllString(path, "[a-zA-Z0-9]+")
+	}
+
 	if _, ok := api.handlers[method]; !ok {
 		api.handlers[method] = make(map[string]Handler)
 	}
@@ -143,6 +161,7 @@ func (api *Service) handle(route Route, middlewares ...param.HandlersOption) Han
 }
 
 // GET - implements GET api method call.
+//go:webapi parameter
 func (api *Service) GET(route Route, middlewares ...param.HandlersOption) RouterByPath {
 	return func(path string) {
 		api.Add(http.MethodGet, path, route, middlewares...)
@@ -202,5 +221,30 @@ func (api *Service) CONNECT(route Route, middlewares ...param.HandlersOption) Ro
 func (api *Service) OPTIONS(route Route, middlewares ...param.HandlersOption) RouterByPath {
 	return func(path string) {
 		api.Add(http.MethodOptions, path, route, middlewares...)
+	}
+}
+
+func parseInPathParameters(pathTemplate string) param.HandlersOption {
+	var templateParams = strings.Split(pathTemplate, "/")
+
+	return func(request *param.Request) error {
+		var (
+			path       = request.Request().URL.Path
+			pathParams = strings.Split(path, "/")
+		)
+
+		if len(pathParams) < len(templateParams) {
+			panic("incoming path is less than template")
+		}
+
+		for i, template := range templateParams {
+			if pathParams[i] == template {
+				continue
+			}
+
+			request.AddInPathParameter(template[1:len(template)-1], pathParams[i])
+		}
+
+		return nil
 	}
 }

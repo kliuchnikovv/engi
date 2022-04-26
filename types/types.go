@@ -19,13 +19,14 @@ type (
 
 // AsIsResponse - returns payload without any wrapping (even errors).
 type AsIsResponse struct {
-	XMLName  xml.Name `xml:"response" json:"-"`
-	Response string   `xml:",chardata"`
+	Code     int         `xml:"-" json:"-"`
+	XMLName  xml.Name    `xml:"response" json:"-"`
+	Response interface{} `xml:",chardata" json:"response,omitempty"`
 }
 
 // SetPayload - sets response payload into object.
 func (obj *AsIsResponse) SetPayload(object interface{}) {
-	obj.Response = fmt.Sprint(object)
+	obj.Response = object
 }
 
 // SetError - sets error response into object.
