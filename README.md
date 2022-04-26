@@ -45,7 +45,7 @@ with additional middleware functions, including those for requesting mandatory q
 func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 	return map[string]webapi.RouterFunc{
 		"get":    api.GET(api.GetByID, api.WithInt("id")),
-		"create": api.POST(api.Create, api.WithBody(&Body{})),
+		"create": api.POST(api.Create, api.Body(&Body{})),
 	}
 }
 ```

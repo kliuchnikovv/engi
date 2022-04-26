@@ -4,24 +4,25 @@ import (
 	"log"
 
 	"github.com/KlyuchnikovV/webapi"
-	service "github.com/KlyuchnikovV/webapi/example/services"
+	"github.com/KlyuchnikovV/webapi/example/services"
 	"github.com/KlyuchnikovV/webapi/types"
 )
 
 func main() {
 	w := webapi.New(
 		":8080",
-		// (*webapi.Engine).ResponseAsXML,
+
+		// Equals to 'w.ResponseAsJSON()'
+		// This form can be used with any engine methods having no parameters.
 		(*webapi.Engine).ResponseAsJSON,
 	)
 
-	// w.WithPrefix("server")
-
+	w.WithPrefix("api")
 	w.ObjectResponse(new(types.AsIsResponse))
 
 	err := w.RegisterServices(
-		service.NewRequestAPI(w),
-		service.NewNotesAPI(w),
+		services.NewRequestAPI(w),
+		services.NewNotesAPI(w),
 	)
 	if err != nil {
 		log.Fatal(err)
