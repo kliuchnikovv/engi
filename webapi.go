@@ -69,8 +69,6 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 // Start listens on the TCP network address srv.Addr and then calls Serve to handle requests on incoming connections.
 // Accepted connections are configured to enable TCP keep-alives.
 //
-// If srv.Addr is blank, ":http" is used.
-//
 // Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
 func (e *Engine) Start() error {
 	e.log.Infof("WebApi started...")

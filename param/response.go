@@ -68,13 +68,15 @@ func (resp *Response) OK(payload interface{}) error {
 }
 
 // Created - responses with 201 http code and no content.
-func (resp *Response) Created() {
+func (resp *Response) Created() error {
 	resp.WithoutContent(http.StatusCreated)
+	return nil
 }
 
 // NoContent - responses with 204 http code and no content.
-func (resp *Response) NoContent() {
+func (resp *Response) NoContent() error {
 	resp.WithoutContent(http.StatusNoContent)
+	return nil
 }
 
 // BadRequest - responses with 400 code and provided message.

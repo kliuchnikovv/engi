@@ -59,9 +59,7 @@ func (api *RequestAPI) Create(ctx *webapi.Context) error {
 		return ctx.Response.OK(body)
 	}
 
-	ctx.Response.Created()
-
-	return nil
+	return ctx.Response.Created()
 }
 
 func (api *RequestAPI) CreateSubRequest(ctx *webapi.Context) error {

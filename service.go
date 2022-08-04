@@ -13,11 +13,9 @@ import (
 var parameterRegexp = regexp.MustCompile("{[a-zA-Z]*}")
 
 type (
-	//go:webapi <service name>
 	ServiceAPI interface {
 		// Routers returns the handlers and their relative paths (relative to the service) for registration.
 		//	Must be implemented by Service
-		//go:webapi <service method>
 		Routers() map[string]RouterByPath
 
 		// PathPrefix - prefix of all paths for this service.
@@ -32,7 +30,6 @@ type (
 	}
 
 	// Service - provides basic service methods.
-	//go:webapi
 	Service struct {
 		prefix string
 
@@ -47,7 +44,6 @@ type (
 	}
 )
 
-//go:webapi (_, prefix)
 func NewService(engine *Engine, prefix string) *Service {
 	return &Service{
 		prefix:   strings.Trim(prefix, "/"),
@@ -161,7 +157,6 @@ func (api *Service) handle(route Route, middlewares ...param.HandlersOption) Han
 }
 
 // GET - implements GET api method call.
-//go:webapi parameter
 func (api *Service) GET(route Route, middlewares ...param.HandlersOption) RouterByPath {
 	return func(path string) {
 		api.Add(http.MethodGet, path, route, middlewares...)
@@ -234,6 +229,7 @@ func parseInPathParameters(pathTemplate string) param.HandlersOption {
 		)
 
 		if len(pathParams) < len(templateParams) {
+			// TODO:
 			panic("incoming path is less than template")
 		}
 

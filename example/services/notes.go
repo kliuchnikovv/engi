@@ -13,6 +13,8 @@ type NotesAPI struct {
 	webapi.Service
 }
 
+type Func func(*webapi.Engine) error
+
 func NewNotesAPI(engine *webapi.Engine) *NotesAPI {
 	return &NotesAPI{
 		Service: *webapi.NewService(engine, "notes"),
@@ -46,9 +48,7 @@ func (api *NotesAPI) Create(ctx *webapi.Context) error {
 		return ctx.Response.OK(body)
 	}
 
-	ctx.Response.Created()
-
-	return nil
+	return ctx.Response.Created()
 }
 
 func (api *NotesAPI) GetByID(ctx *webapi.Context) error {
