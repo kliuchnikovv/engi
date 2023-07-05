@@ -11,25 +11,18 @@ import (
 func main() {
 	w := webapi.New(
 		":8080",
-
-		// Equals to 'w.ResponseAsJSON()'
-		// This form can be used with any engine methods having no parameters.
-		(*webapi.Engine).ResponseAsJSON,
+		webapi.WithPrefix("api"),
+		webapi.ResponseAsJSON(new(types.AsIsResponse)),
 	)
 
-	w.WithPrefix("api")
-	w.ObjectResponse(new(types.AsIsResponse))
-
-	err := w.RegisterServices(
-		services.NewRequestAPI(w),
-		services.NewNotesAPI(w),
-	)
-	if err != nil {
+	if err := w.RegisterServices(
+		new(services.NotesAPI),
+		new(services.RequestAPI),
+	); err != nil {
 		log.Fatal(err)
 	}
 
-	err = w.Start()
-	if err != nil {
+	if err := w.Start(); err != nil {
 		log.Fatal(err)
 	}
 }

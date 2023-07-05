@@ -1,4 +1,4 @@
-package param
+package options
 
 import (
 	"fmt"
@@ -26,8 +26,8 @@ func NewResponse(
 	}
 }
 
-// WithJSON - responses with provided custom code and body.
-func (resp *Response) WithJSON(code int, payload interface{}) error {
+// JSON - responses with provided custom code and body.
+func (resp *Response) JSON(code int, payload interface{}) error {
 	resp.object.SetPayload(payload)
 
 	bytes, err := resp.marshaler(resp.object)
@@ -58,25 +58,24 @@ func (resp *Response) Error(code int, format string, args ...interface{}) error 
 }
 
 // WithourContent - responses with provided custom code and no body.
-func (resp *Response) WithoutContent(code int) {
+func (resp *Response) WithoutContent(code int) error {
 	resp.writer.WriteHeader(code)
+	return nil // in purpose of unification
 }
 
 // OK - writes payload into json's 'result' field with 200 http code.
 func (resp *Response) OK(payload interface{}) error {
-	return resp.WithJSON(http.StatusOK, payload)
+	return resp.JSON(http.StatusOK, payload)
 }
 
 // Created - responses with 201 http code and no content.
 func (resp *Response) Created() error {
-	resp.WithoutContent(http.StatusCreated)
-	return nil
+	return resp.WithoutContent(http.StatusCreated)
 }
 
 // NoContent - responses with 204 http code and no content.
 func (resp *Response) NoContent() error {
-	resp.WithoutContent(http.StatusNoContent)
-	return nil
+	return resp.WithoutContent(http.StatusNoContent)
 }
 
 // BadRequest - responses with 400 code and provided message.
@@ -102,4 +101,8 @@ func (resp *Response) MethodNotAllowed(format string, args ...interface{}) error
 // InternalServerError - responses with 500 error code and provided message.
 func (resp *Response) InternalServerError(format string, args ...interface{}) error {
 	return resp.Error(http.StatusInternalServerError, format, args...)
+}
+
+func (resp *Response) Response() http.ResponseWriter {
+	return resp.writer
 }

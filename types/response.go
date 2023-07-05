@@ -19,8 +19,8 @@ type (
 
 // AsIsResponse - returns payload without any wrapping (even errors).
 type AsIsResponse struct {
-	Code     int         `xml:"-" json:"-"`
 	XMLName  xml.Name    `xml:"response" json:"-"`
+	Code     int         `xml:"-" json:"-"`
 	Response interface{} `xml:",chardata" json:"response,omitempty"`
 }
 
@@ -39,8 +39,8 @@ func (obj *AsIsResponse) MarshalJSON() ([]byte, error) {
 }
 
 type ResponseObject struct {
-	Code        int         `json:"-" xml:"-"`
 	XMLName     xml.Name    `json:"-" xml:"response"`
+	Code        int         `json:"-" xml:"-"`
 	Result      interface{} `json:"result,omitempty" xml:"result,omitempty"`
 	ErrorString string      `json:"error,omitempty" xml:"error,omitempty"`
 }

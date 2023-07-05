@@ -4,9 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/param"
+	"github.com/KlyuchnikovV/webapi/options"
 	"github.com/KlyuchnikovV/webapi/types"
 )
 
@@ -14,26 +15,20 @@ var parameterRegexp = regexp.MustCompile("{[a-zA-Z]*}")
 
 type (
 	ServiceAPI interface {
+		// Prefix - prefix of all paths for this service.
+		Prefix() string
+
 		// Routers returns the handlers and their relative paths (relative to the service) for registration.
-		//	Must be implemented by Service
 		Routers() map[string]RouterByPath
+	}
 
-		// PathPrefix - prefix of all paths for this service.
-		PathPrefix() string
-
-		// ServeHTTP should write reply headers and data to the ResponseWriter
-		// and then return. Returning signals that the request is finished; it
-		// is not valid to use the ResponseWriter or read from the
-		// Request.Body after or concurrently with the completion of the
-		// ServeHTTP call.
-		ServeHTTP(http.ResponseWriter, *http.Request)
+	MiddlewaresAPI interface {
+		Middlewares() []Middleware
 	}
 
 	// Service - provides basic service methods.
 	Service struct {
-		prefix string
-
-		middlewares []param.HandlersOption
+		middlewares []options.HandlerParams
 
 		handlers map[string]map[string]Handler
 
@@ -41,27 +36,21 @@ type (
 		responser types.Responser
 
 		log *types.Log
+
+		api ServiceAPI
 	}
 )
 
-func NewService(engine *Engine, prefix string) *Service {
+func NewService(engine *Engine, api ServiceAPI) *Service {
 	return &Service{
-		prefix:   strings.Trim(prefix, "/"),
 		handlers: make(map[string]map[string]Handler),
 
 		log:       engine.log,
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
+
+		api: api,
 	}
-}
-
-func (api *Service) Routers() map[string]RouterByPath {
-	return nil
-}
-
-// PathPrefix - prefix of all paths for this service.
-func (api *Service) PathPrefix() string {
-	return api.prefix
 }
 
 // ServeHTTP should write reply headers and data to the ResponseWriter
@@ -72,13 +61,39 @@ func (api *Service) PathPrefix() string {
 func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var ctx = NewContext(w, r, api.marshaler, api.responser)
 
-	if _, ok := api.handlers[r.Method]; !ok {
-		if err := ctx.Response.NotFound("method '%s' not appliable for '%s'", r.Method, r.URL.Path); err != nil {
-			api.log.SendErrorf(err.Error())
+	for _, middleware := range api.middlewares {
+		err := middleware(ctx.Request, ctx.Response.Response())
+		if err == nil {
+			continue
+		}
+
+		var response types.ResponseObject
+
+		errors.As(err, &response)
+
+		switch response.Code {
+		case http.StatusOK:
+			err = ctx.Response.OK(response.Code)
+		default:
+			err = ctx.Response.Error(response.Code, response.ErrorString)
+		}
+
+		if err != nil {
+			api.log.SendError(err.Error())
 		}
 
 		return
 	}
+
+	if _, ok := api.handlers[r.Method]; !ok {
+		if err := ctx.Response.NotFound("method '%s' not appliable for '%s'", r.Method, r.URL.Path); err != nil {
+			api.log.SendError(err.Error())
+		}
+
+		return
+	}
+
+	// TODO:
 
 	if handler, ok := api.handlers[r.Method][r.URL.Path]; ok {
 		handler(ctx)
@@ -93,55 +108,43 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-		api.log.SendErrorf(err.Error())
+		api.log.SendError(err.Error())
 	}
 }
 
-// Add - creates route with custom method and path.
-func (api *Service) Add(
+// add - creates route with custom method and path.
+func (api *Service) add(
 	method, path string,
 	route Route,
-	middlewares ...param.HandlersOption,
+	middlewares ...options.HandlerParams,
 ) {
-	if strings.ContainsAny(path, "{}") {
-		middlewares = append([]param.HandlersOption{parseInPathParameters(path)}, middlewares...)
-		path = parameterRegexp.ReplaceAllString(path, "[a-zA-Z0-9]+")
-	}
-
 	if _, ok := api.handlers[method]; !ok {
 		api.handlers[method] = make(map[string]Handler)
 	}
 
 	if _, ok := api.handlers[method][path]; ok {
-		api.log.SendErrorf("method '%s' with path '%s' already defined", method, path)
+		api.log.SendError("method '%s' with path '%s' already defined", method, path)
 		return
+	}
+
+	if strings.ContainsAny(path, "{}") {
+		middlewares = append([]options.HandlerParams{parseInPathParameters(path)}, middlewares...)
+		path = parameterRegexp.ReplaceAllString(path, "[a-zA-Z0-9]+")
 	}
 
 	api.handlers[method][path] = api.handle(route, middlewares...)
 }
 
-func (api *Service) handle(route Route, middlewares ...param.HandlersOption) Handler {
+func (api *Service) handle(route Route, middlewares ...options.HandlerParams) Handler {
 	return func(ctx *Context) {
 		var response types.ResponseObject
 
-		for _, middleware := range api.middlewares {
-			if err := middleware(ctx.Request); err != nil {
-				errors.As(err, &response)
-
-				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
-					api.log.SendErrorf(err.Error())
-				}
-
-				return
-			}
-		}
-
 		for _, middleware := range middlewares {
-			if err := middleware(ctx.Request); err != nil {
+			if err := middleware(ctx.Request, ctx.Response.Response()); err != nil {
 				errors.As(err, &response)
 
 				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
-					api.log.SendErrorf(err.Error())
+					api.log.SendError(err.Error())
 				}
 
 				return
@@ -150,86 +153,98 @@ func (api *Service) handle(route Route, middlewares ...param.HandlersOption) Han
 
 		if err := route(ctx); err != nil {
 			if err := ctx.Response.InternalServerError(err.Error()); err != nil {
-				api.log.SendErrorf(err.Error())
+				api.log.SendError(err.Error())
 			}
 		}
 	}
 }
 
+func (api *Service) getRoutes() []string {
+	var result = make([]string, 0, len(api.api.Routers()))
+
+	for path := range api.api.Routers() {
+		result = append(result, path)
+	}
+
+	sort.Strings(result)
+
+	return result
+}
+
 // GET - implements GET api method call.
-func (api *Service) GET(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodGet, path, route, middlewares...)
+func GET(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodGet, path, route, middlewares...)
 	}
 }
 
 // PUT - implements PUT api method call.
-func (api *Service) PUT(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodPut, path, route, middlewares...)
+func PUT(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodPut, path, route, middlewares...)
 	}
 }
 
 // HEAD - implements HEAD api method call.
-func (api *Service) HEAD(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodHead, path, route, middlewares...)
+func HEAD(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodHead, path, route, middlewares...)
 	}
 }
 
 // POST - implements POST api method call.
-func (api *Service) POST(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodPost, path, route, middlewares...)
+func POST(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodPost, path, route, middlewares...)
 	}
 }
 
 // PATCH - implements PATCH api method call.
-func (api *Service) PATCH(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodPatch, path, route, middlewares...)
+func PATCH(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodPatch, path, route, middlewares...)
 	}
 }
 
 // TRACE - implements TRACE api method call.
-func (api *Service) TRACE(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodTrace, path, route, middlewares...)
+func TRACE(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodTrace, path, route, middlewares...)
 	}
 }
 
 // DELETE - implements DELETE api method call.
-func (api *Service) DELETE(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodDelete, path, route, middlewares...)
+func DELETE(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodDelete, path, route, middlewares...)
 	}
 }
 
 // CONNECT - implements CONNECT api method call.
-func (api *Service) CONNECT(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodConnect, path, route, middlewares...)
+func CONNECT(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodConnect, path, route, middlewares...)
 	}
 }
 
 // OPTIONS - implements OPTIONS api method call.
-func (api *Service) OPTIONS(route Route, middlewares ...param.HandlersOption) RouterByPath {
-	return func(path string) {
-		api.Add(http.MethodOptions, path, route, middlewares...)
+func OPTIONS(route Route, middlewares ...options.HandlerParams) RouterByPath {
+	return func(api *Service, path string) {
+		api.add(http.MethodOptions, path, route, middlewares...)
 	}
 }
 
-func parseInPathParameters(pathTemplate string) param.HandlersOption {
+func parseInPathParameters(pathTemplate string) options.HandlerParams {
 	var templateParams = strings.Split(pathTemplate, "/")
 
-	return func(request *param.Request) error {
+	return func(request *options.Request, _ http.ResponseWriter) error {
 		var (
 			path       = request.Request().URL.Path
 			pathParams = strings.Split(path, "/")
 		)
 
 		if len(pathParams) < len(templateParams) {
-			// TODO:
+			// TODO: response
 			panic("incoming path is less than template")
 		}
 

@@ -3,19 +3,20 @@ package webapi
 import (
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/param"
+	"github.com/KlyuchnikovV/webapi/options"
 	"github.com/KlyuchnikovV/webapi/types"
 )
 
 type (
-	RouterByPath func(string)
+	RouterByPath func(*Service, string)
 	Route        func(*Context) error
 	Handler      func(*Context)
+	Middleware   func(*Service)
 
 	// Context - provides methods for extracting data from query and response back.
 	Context struct {
-		*param.Request
-		*param.Response
+		*options.Request
+		*options.Response
 	}
 )
 
@@ -26,7 +27,7 @@ func NewContext(
 	responseObject types.Responser,
 ) *Context {
 	return &Context{
-		Request:  param.NewRequest(request),
-		Response: param.NewResponse(response, responseMarshaler, responseObject),
+		Request:  options.NewRequest(request),
+		Response: options.NewResponse(response, responseMarshaler, responseObject),
 	}
 }

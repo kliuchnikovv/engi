@@ -6,59 +6,75 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/KlyuchnikovV/webapi/types"
+)
+
+const (
+	defaultPrefix  = "api"
+	defaultAddress = ":8080"
+	defaultTimeout = 5 * time.Second
 )
 
 // Engine - server provider.
 type Engine struct {
 	apiPrefix string
 
-	server http.Server
+	server *http.Server
 
 	responseMarshaler types.Marshaler
 	responseObject    types.Responser
 
-	services []ServiceAPI
+	services []*Service
 
 	log *types.Log
 }
 
-func New(address string, configs ...func(*Engine)) *Engine {
-	e := &Engine{
-		apiPrefix: "api",
-		server: http.Server{
-			Addr: address,
-		},
+func New(address string, configs ...Option) *Engine {
+	var engine = &Engine{
+		apiPrefix:         defaultPrefix,
 		log:               types.NewLog(nil),
-		responseMarshaler: json.Marshal,
 		responseObject:    new(types.AsIsResponse),
+		responseMarshaler: json.Marshal,
+		server: &http.Server{
+			Addr:              defaultAddress,
+			ReadTimeout:       defaultTimeout,
+			WriteTimeout:      defaultTimeout,
+			IdleTimeout:       defaultTimeout,
+			ReadHeaderTimeout: defaultTimeout,
+		},
 	}
 
 	for _, config := range configs {
-		config(e)
+		config(engine)
 	}
 
-	return e
+	return engine
 }
 
 // RegisterServices - registering service routes.
 func (e *Engine) RegisterServices(services ...ServiceAPI) error {
-	e.services = services
+	e.services = make([]*Service, len(services))
 
 	var mux = http.NewServeMux()
 
-	for i := range e.services {
-		var servicePrefix = fmt.Sprintf("/%s/%s/", e.apiPrefix, e.services[i].PathPrefix())
+	for i, srv := range services {
+		e.services[i] = NewService(e, srv)
 
-		for path, register := range e.services[i].Routers() {
-			register(fmt.Sprintf("%s%s", servicePrefix, strings.Trim(path, "/")))
+		var servicePath = fmt.Sprintf("/%s/%s/", e.apiPrefix, srv.Prefix())
+
+		if middlewares, ok := srv.(MiddlewaresAPI); ok {
+			for _, middleware := range middlewares.Middlewares() {
+				middleware(e.services[i])
+			}
 		}
 
-		mux.Handle(
-			servicePrefix,
-			e.services[i],
-		)
+		for path, register := range srv.Routers() {
+			register(e.services[i], fmt.Sprintf("%s%s", servicePath, strings.Trim(path, "/")))
+		}
+
+		mux.Handle(servicePath, e.services[i])
 	}
 
 	e.server.Handler = mux
@@ -71,59 +87,78 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 //
 // Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
 func (e *Engine) Start() error {
-	e.log.Infof("WebApi started...")
+	e.log.Info("Starting on %s", e.server.Addr)
+	e.log.Info("WebApi started...")
 
 	return e.server.ListenAndServe()
 }
 
-// Use - sets custom configuration function.
-func (e *Engine) Use(f func(*http.Server)) {
-	f(&e.server)
-}
+type Option func(*Engine)
 
-// WithPrefix - sets api's prefix.
-func (e *Engine) WithPrefix(prefix string) {
-	e.apiPrefix = strings.Trim(prefix, "/")
-}
-
-// ResponseAsJSON - tells server to serialize all responses as JSON.
-func (e *Engine) ResponseAsJSON() {
-	e.responseMarshaler = json.Marshal
-}
-
-// ResponseAsXML - tells server to serialize all responses as XML.
-func (e *Engine) ResponseAsXML() {
-	e.responseMarshaler = func(i interface{}) ([]byte, error) {
-		bytes, err := xml.Marshal(i)
-		if err != nil {
-			return nil, err
-		}
-
-		// Should append header for proper visualization.
-		return append([]byte(xml.Header), bytes...), nil
+// WithResponse - tells server to use object as wrapper for all responses.
+func WithResponse(object types.Responser) Option {
+	return func(engine *Engine) {
+		engine.responseObject = object
 	}
 }
 
 // AsIsResponse - tells server to response objects without wrapping.
-func (e *Engine) AsIsResponse() {
-	e.responseObject = new(types.AsIsResponse)
+func AsIsResponse(engine *Engine) {
+	engine.responseObject = new(types.AsIsResponse)
 }
 
-// ObjectResponse - tells server to use object as wrapper for all responses.
-func (e *Engine) ObjectResponse(object types.Responser) {
-	e.responseObject = object
+// Use - sets custom configuration function for http.Server.
+func Use(f func(*http.Server)) Option {
+	return func(engine *Engine) {
+		f(engine.server)
+	}
+}
+
+// WithPrefix - sets api's prefix.
+func WithPrefix(prefix string) Option {
+	return func(engine *Engine) {
+		engine.apiPrefix = strings.Trim(prefix, "/")
+	}
 }
 
 // WithLogger - sets custom logger.
-func (e *Engine) WithLogger(log types.Logger) {
-	e.log = types.NewLog(log)
+func WithLogger(log types.Logger) Option {
+	return func(engine *Engine) {
+		engine.log = types.NewLog(log)
+	}
 }
 
 // WithSendingErrors - sets errors channel capacity.
-func (e *Engine) WithSendingErrors(capacity int) {
-	if e.log == nil {
-		e.log = types.NewLog(nil)
-	} else {
-		e.log.SetChannelCapacity(capacity)
+func WithSendingErrors(capacity int) Option {
+	return func(engine *Engine) {
+		if engine.log == nil {
+			engine.log = types.NewLog(nil)
+		} else {
+			engine.log.SetChannelCapacity(capacity)
+		}
+	}
+}
+
+// ResponseAsJSON - tells server to serialize responses as JSON using object as wrapper.
+func ResponseAsJSON(object types.Responser) Option {
+	return func(engine *Engine) {
+		engine.responseObject = object
+		engine.responseMarshaler = json.Marshal
+	}
+}
+
+// ResponseAsXML - tells server to serialize responses as XML using object as wrapper.
+func ResponseAsXML(object types.Responser) Option {
+	return func(engine *Engine) {
+		engine.responseObject = object
+		engine.responseMarshaler = func(i interface{}) ([]byte, error) {
+			bytes, err := xml.Marshal(i)
+			if err != nil {
+				return nil, err
+			}
+
+			// Should append header for proper visualization.
+			return append([]byte(xml.Header), bytes...), nil
+		}
 	}
 }
