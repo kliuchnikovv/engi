@@ -6,7 +6,7 @@ import (
 	"github.com/KlyuchnikovV/webapi"
 	"github.com/KlyuchnikovV/webapi/example/entity"
 	"github.com/KlyuchnikovV/webapi/options"
-	"github.com/KlyuchnikovV/webapi/param"
+	"github.com/KlyuchnikovV/webapi/parameter"
 	"github.com/KlyuchnikovV/webapi/validate"
 )
 
@@ -29,20 +29,23 @@ func (api *NotesAPI) Routers() map[string]webapi.RouterByPath {
 	return map[string]webapi.RouterByPath{
 		"create": webapi.POST(
 			api.Create,
-			param.Body(new(entity.NotesRequest)),
-			param.Description("creates new note"),
+			parameter.Body(new(entity.NotesRequest)),
+			parameter.Description("creates new note"),
 		),
 		"get": webapi.GET(
 			api.GetByID,
-			param.Integer("id", options.InQuery,
-				validate.AND(validate.Greater(1), validate.Less(10)),
+			parameter.Integer("id", options.InQuery,
 				options.Description("ID of request."),
+				validate.AND(
+					validate.Greater(1),
+					validate.Less(10),
+				),
 			),
 		),
 		"{object}/{id}": webapi.GET(
 			api.GetByIDFromPath,
-			param.Integer("id", options.InPath),
-			param.String("object", options.InPath),
+			parameter.Integer("id", options.InPath),
+			parameter.String("object", options.InPath),
 		),
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/KlyuchnikovV/webapi"
 	"github.com/KlyuchnikovV/webapi/example/entity"
 	"github.com/KlyuchnikovV/webapi/options"
-	"github.com/KlyuchnikovV/webapi/param"
+	"github.com/KlyuchnikovV/webapi/parameter"
 	"github.com/KlyuchnikovV/webapi/validate"
 )
 
@@ -28,29 +28,31 @@ func (api *RequestAPI) Routers() map[string]webapi.RouterByPath {
 	return map[string]webapi.RouterByPath{
 		"get": webapi.GET(
 			api.GetByID,
-			param.Integer("id", options.InQuery,
+			parameter.Integer("id", options.InQuery,
 				options.Description("ID of request."),
 				validate.AND(validate.Greater(1), validate.Less(10)),
 			),
 		),
 		"create": webapi.POST(
 			api.Create,
-			// TODO: add params for body eg Description
-			param.Body(new(entity.RequestBody)),
+			parameter.Description("Creates new request"),
+			parameter.Body(new(entity.RequestBody),
+				options.Description("Body description"),
+			),
 		),
 		"create/sub-request": webapi.POST(
 			api.CreateSubRequest,
-			param.Body([]entity.RequestBody{}),
+			parameter.Body([]entity.RequestBody{}),
 		),
 		"filter": webapi.GET(
 			api.Filter,
-			param.Bool("bool", options.InQuery),
-			param.Float("float", options.InQuery, validate.NotEmpty),
-			param.String("str", options.InQuery,
+			parameter.Bool("bool", options.InQuery),
+			parameter.Float("float", options.InQuery, validate.NotEmpty),
+			parameter.Integer("int", options.InQuery),
+			parameter.String("str", options.InQuery,
 				validate.AND(validate.NotEmpty, validate.Greater(2)),
 			),
-			param.Integer("int", options.InQuery),
-			param.Time("time", "2006-01-02 15:04", options.InQuery,
+			parameter.Time("time", "2006-01-02 15:04", options.InQuery,
 				options.Description("Filter by time field."),
 			),
 		),

@@ -7,10 +7,14 @@ import (
 	"time"
 )
 
+type Placing string // TODO: extend logic
+
 const (
-	InPath  Placing = "path"
-	InBody  Placing = "body" // TODO: make in-body logic great again
-	InQuery Placing = "query"
+	// InBody  Placing = "body" // TODO: make in-body logic great again
+	InPath   Placing = "path"
+	InQuery  Placing = "query"
+	InCookie Placing = "cookie"
+	InHeader Placing = "header"
 
 	IntBase int = 10
 	BitSize int = 64
@@ -19,7 +23,6 @@ const (
 type (
 	HandlerParams func(*Request, http.ResponseWriter) error
 	Option        func(*Parameter) error
-	Placing       string // TODO: extend logic
 )
 
 type Parameter struct {
