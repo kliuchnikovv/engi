@@ -90,8 +90,8 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 //
 // Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
 func (e *Engine) Start() error {
-	e.log.Info("Starting on %s", e.server.Addr)
-	e.log.Info("WebApi started...")
+	e.log.Infof("Starting on %s", e.server.Addr)
+	e.log.Infof("WebApi started...")
 
 	return e.server.ListenAndServe()
 }

@@ -131,7 +131,7 @@ linters:
     - godot
     - testpackage
     - gomoddirectives
-    - wsl # TODO: disable cuddling
+    - wsl
 
   disable:
     - dupl

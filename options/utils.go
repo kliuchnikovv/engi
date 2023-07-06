@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/KlyuchnikovV/webapi/types"
@@ -119,7 +119,7 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 func readBody(request *Request) error {
 	defer request.request.Body.Close()
 
-	bytes, err := ioutil.ReadAll(request.request.Body)
+	bytes, err := io.ReadAll(request.request.Body)
 	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
 		return types.NewErrorResponse(http.StatusInternalServerError, "reading body failed: %s", err.Error())
 	}

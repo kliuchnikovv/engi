@@ -40,16 +40,16 @@ func (log *Log) Channel() chan error {
 	return log.channel
 }
 
-// SendError - sends error to channel and writes it in log.
-func (log *Log) SendError(format string, args ...interface{}) {
+// SendErrorf - sends error to channel and writes it in log.
+func (log *Log) SendErrorf(format string, args ...interface{}) {
 	if log.channel != nil {
 		log.channel <- fmt.Errorf(format, args...)
 	}
 
-	log.Error(format, args...)
+	log.Errorf(format, args...)
 }
 
-func (log *Log) Write(
+func (log *Log) Writef(
 	method Method,
 	format string,
 	args ...interface{},
@@ -79,20 +79,20 @@ func (log *Log) Write(
 	logFunction(log.Logger, format, args...)
 }
 
-func (log *Log) Trace(format string, args ...interface{}) {
-	log.Write(Trace, format, args...)
+func (log *Log) Tracef(format string, args ...interface{}) {
+	log.Writef(Trace, format, args...)
 }
 
-func (log *Log) Info(format string, args ...interface{}) {
-	log.Write(Info, format, args...)
+func (log *Log) Infof(format string, args ...interface{}) {
+	log.Writef(Info, format, args...)
 }
 
-func (log *Log) Warning(format string, args ...interface{}) {
-	log.Write(Warning, format, args...)
+func (log *Log) Warningf(format string, args ...interface{}) {
+	log.Writef(Warning, format, args...)
 }
 
-func (log *Log) Error(format string, args ...interface{}) {
-	log.Write(Error, format, args...)
+func (log *Log) Errorf(format string, args ...interface{}) {
+	log.Writef(Error, format, args...)
 }
 
 func (log *Log) SetChannelCapacity(capacity int) {

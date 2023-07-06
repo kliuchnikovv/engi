@@ -19,8 +19,6 @@ const (
 	corsOptionMethod         string = http.MethodOptions
 )
 
-var defaultCorsHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Origin"}
-
 // OriginValidator takes an origin string and returns whether or not that origin is allowed.
 type OriginValidator func(string) bool
 
@@ -31,9 +29,12 @@ type cors struct {
 }
 
 func (c *cors) Handle(request *options.Request, response http.ResponseWriter) error {
-	var r = request.Request()
+	var (
+		r                  = request.Request()
+		origin             = r.Header.Get(corsOriginHeader)
+		defaultCorsHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Origin"}
+	)
 
-	origin := r.Header.Get(corsOriginHeader)
 	if !contains(c.allowedOrigins, origin) && !contains(c.allowedOrigins, corsOriginMatchAll) {
 		return fmt.Errorf("origin '%s' is not allowed", origin)
 	}

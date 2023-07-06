@@ -7,10 +7,9 @@ import (
 	"time"
 )
 
-type Placing string // TODO: extend logic
+type Placing string
 
 const (
-	// InBody  Placing = "body" // TODO: make in-body logic great again
 	InPath   Placing = "path"
 	InQuery  Placing = "query"
 	InCookie Placing = "cookie"

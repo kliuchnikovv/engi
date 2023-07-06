@@ -66,7 +66,6 @@ func (api *NotesAPI) GetByID(ctx *webapi.Context) error {
 		return ctx.BadRequest("id can't be negative (got: %d)", id)
 	}
 
-	// TODO: failed
 	return ctx.OK(struct {
 		Message string `json:"message" description:"Response message"`
 	}{

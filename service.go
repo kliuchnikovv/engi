@@ -2,9 +2,9 @@ package webapi
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/KlyuchnikovV/webapi/options"
@@ -79,7 +79,7 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
-			api.log.SendError(err.Error())
+			api.log.SendErrorf(err.Error())
 		}
 
 		return
@@ -87,13 +87,11 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if _, ok := api.handlers[r.Method]; !ok {
 		if err := ctx.Response.NotFound("method '%s' not appliable for '%s'", r.Method, r.URL.Path); err != nil {
-			api.log.SendError(err.Error())
+			api.log.SendErrorf(err.Error())
 		}
 
 		return
 	}
-
-	// TODO:
 
 	if handler, ok := api.handlers[r.Method][r.URL.Path]; ok {
 		handler(ctx)
@@ -108,7 +106,7 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-		api.log.SendError(err.Error())
+		api.log.SendErrorf(err.Error())
 	}
 }
 
@@ -123,7 +121,7 @@ func (api *Service) add(
 	}
 
 	if _, ok := api.handlers[method][path]; ok {
-		api.log.SendError("method '%s' with path '%s' already defined", method, path)
+		api.log.SendErrorf("method '%s' with path '%s' already defined", method, path)
 		return
 	}
 
@@ -144,7 +142,7 @@ func (api *Service) handle(route Route, middlewares ...options.HandlerParams) Ha
 				errors.As(err, &response)
 
 				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
-					api.log.SendError(err.Error())
+					api.log.SendErrorf(err.Error())
 				}
 
 				return
@@ -153,22 +151,10 @@ func (api *Service) handle(route Route, middlewares ...options.HandlerParams) Ha
 
 		if err := route(ctx); err != nil {
 			if err := ctx.Response.InternalServerError(err.Error()); err != nil {
-				api.log.SendError(err.Error())
+				api.log.SendErrorf(err.Error())
 			}
 		}
 	}
-}
-
-func (api *Service) getRoutes() []string {
-	var result = make([]string, 0, len(api.api.Routers()))
-
-	for path := range api.api.Routers() {
-		result = append(result, path)
-	}
-
-	sort.Strings(result)
-
-	return result
 }
 
 // GET - implements GET api method call.
@@ -244,8 +230,10 @@ func parseInPathParameters(pathTemplate string) options.HandlerParams {
 		)
 
 		if len(pathParams) < len(templateParams) {
-			// TODO: response
-			panic("incoming path is less than template")
+			return fmt.Errorf(
+				"number of path params is less than in template (got: %d, want: %d)",
+				len(pathParams), len(templateParams),
+			)
 		}
 
 		for i, template := range templateParams {
