@@ -126,17 +126,17 @@ linters:
     - whitespace
     - goimports
     - ifshort
-    - gomnd
     - paralleltest
     - tagliatelle
     - godot
     - testpackage
     - gomoddirectives
-    - wsl # TODO: disable cuddling
+    - wsl
 
   disable:
     - dupl
     - gofumpt
+    - gomnd
     - nlreturn # Check if there new-line before return, continue and brake statements
     - scopelint # Deprecated
     - wrapcheck # Check if all errors wrapped
