@@ -26,7 +26,7 @@ The idea of this framework is to create **services**, each of which works with o
 type RequestAPI struct{}
 
 func (api *RequestAPI) Prefix() string {
-  return "request"
+    return "request"
 }
 ```
 
@@ -40,15 +40,15 @@ with additional middleware functions, including those for requesting mandatory p
 
 ```golang
 func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
-  return map[string]webapi.RouterFunc{
-    "get": webapi.GET(
-      api.GetByID,
-      parameter.Integer("id", placing.InQuery,
-        options.Description("ID of the request."),
-        validate.AND(validate.Greater(1), validate.Less(10)),
-      ),
-    ),
-  }
+    return map[string]webapi.RouterFunc{
+        "get": webapi.GET(
+            api.GetByID,
+            parameter.Integer("id", placing.InQuery,
+                options.Description("ID of the request."),
+                validate.AND(validate.Greater(1), validate.Less(10)),
+            ),
+        ),
+    }
 }
 ```
 
@@ -58,16 +58,16 @@ Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an
 
 ```golang
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-  var id = ctx.Integer("id", placing.InQuery)
+    var id = ctx.Integer("id", placing.InQuery)
 
-  // Do something with id
-  if id == 5 {
-    return ctx.BadRequest("id can't be '%d'", id)
-  }
+    // Do something with id
+    if id == 5 {
+        return ctx.BadRequest("id can't be '%d'", id)
+    }
 
-  return ctx.OK(
-    fmt.Sprintf("got id: '%d'", id),
-  )
+    return ctx.OK(
+        fmt.Sprintf("got id: '%d'", id),
+    )
 }
 ```
 
@@ -75,25 +75,25 @@ As a result, to create an application, it remains to create server with `webapi.
 
 ```golang
 func main() {
-     w := webapi.New(
-    ":8080",
-    webapi.WithPrefix("api"),
-    // Define all responses as JSON object
-    webapi.ResponseAsJSON(
-      // Define all responses use Result field to wrap response and Error field to wrap error
-      new(response.AsObject),
-    ),
-  )
+        w := webapi.New(
+        ":8080",
+        webapi.WithPrefix("api"),
+        // Define all responses as JSON object
+        webapi.ResponseAsJSON(
+            // Define all responses use Result field to wrap response and Error field to wrap error
+            new(response.AsObject),
+        ),
+    )
 
-  if err := w.RegisterServices(
-    new(services.RequestAPI),
-  ); err != nil {
-    log.Fatal(err)
-  }
+    if err := w.RegisterServices(
+        new(services.RequestAPI),
+    ); err != nil {
+        log.Fatal(err)
+    }
 
-  if err := w.Start(); err != nil {
-    log.Fatal(err)
-  }
+    if err := w.Start(); err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
