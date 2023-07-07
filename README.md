@@ -75,7 +75,7 @@ As a result, to create an application, it remains to create server with `webapi.
 
 ```golang
 func main() {
-        w := webapi.New(
+    w := webapi.New(
         ":8080",
         webapi.WithPrefix("api"),
         // Define all responses as JSON object
