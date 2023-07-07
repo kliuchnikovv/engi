@@ -1,10 +1,10 @@
-package options
+package response
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal/types"
 )
 
 // Response - provide methods for creating responses.
@@ -14,7 +14,7 @@ type Response struct {
 	object    types.Responser
 }
 
-func NewResponse(
+func New(
 	writer http.ResponseWriter,
 	marshaler types.Marshaler,
 	object types.Responser,
@@ -30,9 +30,14 @@ func NewResponse(
 func (resp *Response) JSON(code int, payload interface{}) error {
 	resp.object.SetPayload(payload)
 
-	bytes, err := resp.marshaler(resp.object)
+	bytes, err := resp.marshaler.Marshal(resp.object)
 	if err != nil {
 		return err
+	}
+
+	var contentType = resp.marshaler.ContentType()
+	if contentType != "" {
+		resp.writer.Header().Add("Content-Type", contentType)
 	}
 
 	if _, err := resp.writer.Write(bytes); err != nil {
@@ -46,9 +51,14 @@ func (resp *Response) JSON(code int, payload interface{}) error {
 func (resp *Response) Error(code int, format string, args ...interface{}) error {
 	resp.object.SetError(fmt.Errorf(format, args...))
 
-	bytes, err := resp.marshaler(resp.object)
+	bytes, err := resp.marshaler.Marshal(resp.object)
 	if err != nil {
 		return err
+	}
+
+	var contentType = resp.marshaler.ContentType()
+	if contentType != "" {
+		resp.writer.Header().Add("Content-Type", contentType)
 	}
 
 	resp.writer.WriteHeader(code)
@@ -103,6 +113,6 @@ func (resp *Response) InternalServerError(format string, args ...interface{}) er
 	return resp.Error(http.StatusInternalServerError, format, args...)
 }
 
-func (resp *Response) Response() http.ResponseWriter {
+func (resp *Response) GetResponse() http.ResponseWriter {
 	return resp.writer
 }

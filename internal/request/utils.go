@@ -1,4 +1,4 @@
-package options
+package request
 
 import (
 	"encoding/json"
@@ -7,21 +7,23 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal/types"
+	"github.com/KlyuchnikovV/webapi/placing"
+	"github.com/KlyuchnikovV/webapi/response"
 )
 
 // ExtractParam - extracting parameter from context, calls middleware and saves to 'context.parameters[from][key]'.
 // After this parameter can be retrieved from context using 'context.Query' methods.
 func ExtractParam(
 	key string,
-	paramPlacing Placing,
+	paramPlacing placing.Placing,
 	request *Request,
 	configs []Option,
 	convert func(string) (interface{}, error),
 ) error {
 	var param = request.GetParameter(key, paramPlacing)
 	if len(param) == 0 {
-		return types.NewErrorResponse(http.StatusBadRequest, "parameter '%s' not found", key)
+		return response.NewError(http.StatusBadRequest, "parameter '%s' not found", key)
 	}
 
 	result, err := convert(param)
@@ -61,7 +63,7 @@ func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interf
 		}
 
 		if len(request.body.raw) == 0 {
-			return types.NewErrorResponse(http.StatusInternalServerError, "no body found after reading")
+			return response.NewError(http.StatusInternalServerError, "no body found after reading")
 		}
 	}
 
@@ -93,7 +95,7 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 		unmarshal = func(b []byte, i interface{}) error {
 			typed, ok := i.(*string)
 			if !ok {
-				return types.NewErrorResponse(http.StatusInternalServerError, "pointer must be of type '*string'")
+				return response.NewError(http.StatusInternalServerError, "pointer must be of type '*string'")
 			}
 
 			*typed = string(b)
@@ -101,12 +103,12 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 			return nil
 		}
 	default:
-		return nil, types.NewErrorResponse(http.StatusBadRequest, "content-type not supported: %s", contentType)
+		return nil, response.NewError(http.StatusBadRequest, "content-type not supported: %s", contentType)
 	}
 
 	return func(bytes []byte, pointer interface{}) error {
 		if err := unmarshal(bytes, pointer); err != nil {
-			return types.NewErrorResponse(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
+			return response.NewError(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
 		}
 
 		request.body.wasRequested = true
@@ -121,7 +123,7 @@ func readBody(request *Request) error {
 
 	bytes, err := io.ReadAll(request.request.Body)
 	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
-		return types.NewErrorResponse(http.StatusInternalServerError, "reading body failed: %s", err.Error())
+		return response.NewError(http.StatusInternalServerError, "reading body failed: %s", err.Error())
 	}
 
 	if len(bytes) != 0 {
@@ -129,7 +131,7 @@ func readBody(request *Request) error {
 	}
 
 	if len(request.body.raw) == 0 {
-		return types.NewErrorResponse(http.StatusBadRequest, "no required body provided")
+		return response.NewError(http.StatusBadRequest, "no required body provided")
 	}
 
 	return err

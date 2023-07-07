@@ -2,16 +2,16 @@ package webapi
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/options"
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal"
+	"github.com/KlyuchnikovV/webapi/internal/context"
+	"github.com/KlyuchnikovV/webapi/internal/request"
+	"github.com/KlyuchnikovV/webapi/internal/types"
+	"github.com/KlyuchnikovV/webapi/logger"
+	"github.com/KlyuchnikovV/webapi/response"
 )
-
-var parameterRegexp = regexp.MustCompile("{[a-zA-Z]*}")
 
 type (
 	ServiceAPI interface {
@@ -28,28 +28,33 @@ type (
 
 	// Service - provides basic service methods.
 	Service struct {
-		middlewares []options.HandlerParams
+		middlewares []request.HandlerParams
 
-		handlers map[string]map[string]Handler
+		handlers map[string]internal.HanlderNode
 
 		marshaler types.Marshaler
 		responser types.Responser
 
-		log *types.Log
+		log *logger.Log
 
-		api ServiceAPI
+		api  ServiceAPI
+		path string
 	}
+
+	RouterByPath func(*Service, string)
+	Middleware   func(*Service)
 )
 
-func NewService(engine *Engine, api ServiceAPI) *Service {
+func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	return &Service{
-		handlers: make(map[string]map[string]Handler),
+		handlers: make(map[string]internal.HanlderNode),
 
 		log:       engine.log,
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
 
-		api: api,
+		api:  api,
+		path: path,
 	}
 }
 
@@ -59,15 +64,15 @@ func NewService(engine *Engine, api ServiceAPI) *Service {
 // Request.Body after or concurrently with the completion of the
 // ServeHTTP call.
 func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var ctx = NewContext(w, r, api.marshaler, api.responser)
+	var ctx = context.NewContext(w, r, api.marshaler, api.responser)
 
 	for _, middleware := range api.middlewares {
-		err := middleware(ctx.Request, ctx.Response.Response())
+		err := middleware(ctx.Request, ctx.Response.GetResponse())
 		if err == nil {
 			continue
 		}
 
-		var response types.ResponseObject
+		var response response.AsObject
 
 		errors.As(err, &response)
 
@@ -93,20 +98,10 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if handler, ok := api.handlers[r.Method][r.URL.Path]; ok {
-		handler(ctx)
-		return
-	}
-
-	for path, handler := range api.handlers[r.Method] {
-		if regexp.MustCompile(path).MatchString(r.URL.Path) {
-			handler(ctx)
-			return
+	if !api.handlers[r.Method].Handle(r.URL.Path, ctx) {
+		if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
+			api.log.SendErrorf(err.Error())
 		}
-	}
-
-	if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-		api.log.SendErrorf(err.Error())
 	}
 }
 
@@ -114,31 +109,24 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (api *Service) add(
 	method, path string,
 	route Route,
-	middlewares ...options.HandlerParams,
+	middlewares ...request.HandlerParams,
 ) {
 	if _, ok := api.handlers[method]; !ok {
-		api.handlers[method] = make(map[string]Handler)
+		api.handlers[method] = internal.NewStringHandler("", nil)
 	}
 
-	if _, ok := api.handlers[method][path]; ok {
-		api.log.SendErrorf("method '%s' with path '%s' already defined", method, path)
-		return
-	}
-
-	if strings.ContainsAny(path, "{}") {
-		middlewares = append([]options.HandlerParams{parseInPathParameters(path)}, middlewares...)
-		path = parameterRegexp.ReplaceAllString(path, "[a-zA-Z0-9]+")
-	}
-
-	api.handlers[method][path] = api.handle(route, middlewares...)
+	api.handlers[method].Add(
+		api.handle(route, middlewares...),
+		strings.Split(path, "/")...,
+	)
 }
 
-func (api *Service) handle(route Route, middlewares ...options.HandlerParams) Handler {
-	return func(ctx *Context) {
-		var response types.ResponseObject
+func (api *Service) handle(route Route, middlewares ...request.HandlerParams) context.Handler {
+	return func(ctx *context.Context) {
+		var response response.AsObject
 
 		for _, middleware := range middlewares {
-			if err := middleware(ctx.Request, ctx.Response.Response()); err != nil {
+			if err := middleware(ctx.Request, ctx.Response.GetResponse()); err != nil {
 				errors.As(err, &response)
 
 				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
@@ -158,92 +146,64 @@ func (api *Service) handle(route Route, middlewares ...options.HandlerParams) Ha
 }
 
 // GET - implements GET api method call.
-func GET(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func GET(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodGet, path, route, middlewares...)
 	}
 }
 
 // PUT - implements PUT api method call.
-func PUT(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func PUT(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodPut, path, route, middlewares...)
 	}
 }
 
 // HEAD - implements HEAD api method call.
-func HEAD(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func HEAD(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodHead, path, route, middlewares...)
 	}
 }
 
 // POST - implements POST api method call.
-func POST(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func POST(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodPost, path, route, middlewares...)
 	}
 }
 
 // PATCH - implements PATCH api method call.
-func PATCH(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func PATCH(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodPatch, path, route, middlewares...)
 	}
 }
 
 // TRACE - implements TRACE api method call.
-func TRACE(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func TRACE(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodTrace, path, route, middlewares...)
 	}
 }
 
 // DELETE - implements DELETE api method call.
-func DELETE(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func DELETE(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodDelete, path, route, middlewares...)
 	}
 }
 
 // CONNECT - implements CONNECT api method call.
-func CONNECT(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func CONNECT(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodConnect, path, route, middlewares...)
 	}
 }
 
 // OPTIONS - implements OPTIONS api method call.
-func OPTIONS(route Route, middlewares ...options.HandlerParams) RouterByPath {
+func OPTIONS(route Route, middlewares ...request.HandlerParams) RouterByPath {
 	return func(api *Service, path string) {
 		api.add(http.MethodOptions, path, route, middlewares...)
-	}
-}
-
-func parseInPathParameters(pathTemplate string) options.HandlerParams {
-	var templateParams = strings.Split(pathTemplate, "/")
-
-	return func(request *options.Request, _ http.ResponseWriter) error {
-		var (
-			path       = request.Request().URL.Path
-			pathParams = strings.Split(path, "/")
-		)
-
-		if len(pathParams) < len(templateParams) {
-			return fmt.Errorf(
-				"number of path params is less than in template (got: %d, want: %d)",
-				len(pathParams), len(templateParams),
-			)
-		}
-
-		for i, template := range templateParams {
-			if pathParams[i] == template {
-				continue
-			}
-
-			request.AddInPathParameter(template[1:len(template)-1], pathParams[i])
-		}
-
-		return nil
 	}
 }

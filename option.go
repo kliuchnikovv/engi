@@ -1,12 +1,12 @@
 package webapi
 
 import (
-	"encoding/json"
-	"encoding/xml"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal/types"
+	"github.com/KlyuchnikovV/webapi/logger"
+	"github.com/KlyuchnikovV/webapi/response"
 )
 
 type Option func(*Engine)
@@ -20,7 +20,7 @@ func WithResponse(object types.Responser) Option {
 
 // AsIsResponse - tells server to response objects without wrapping.
 func AsIsResponse(engine *Engine) {
-	engine.responseObject = new(types.AsIsResponse)
+	engine.responseObject = new(response.AsIs)
 }
 
 // Use - sets custom configuration function for http.Server.
@@ -38,9 +38,9 @@ func WithPrefix(prefix string) Option {
 }
 
 // WithLogger - sets custom logger.
-func WithLogger(log types.Logger) Option {
+func WithLogger(log logger.Logger) Option {
 	return func(engine *Engine) {
-		engine.log = types.NewLog(log)
+		engine.log = logger.New(log)
 	}
 }
 
@@ -48,7 +48,7 @@ func WithLogger(log types.Logger) Option {
 func WithSendingErrors(capacity int) Option {
 	return func(engine *Engine) {
 		if engine.log == nil {
-			engine.log = types.NewLog(nil)
+			engine.log = logger.New(nil)
 		} else {
 			engine.log.SetChannelCapacity(capacity)
 		}
@@ -59,7 +59,7 @@ func WithSendingErrors(capacity int) Option {
 func ResponseAsJSON(object types.Responser) Option {
 	return func(engine *Engine) {
 		engine.responseObject = object
-		engine.responseMarshaler = json.Marshal
+		engine.responseMarshaler = *types.NewJSONMarshaler()
 	}
 }
 
@@ -67,14 +67,6 @@ func ResponseAsJSON(object types.Responser) Option {
 func ResponseAsXML(object types.Responser) Option {
 	return func(engine *Engine) {
 		engine.responseObject = object
-		engine.responseMarshaler = func(i interface{}) ([]byte, error) {
-			bytes, err := xml.Marshal(i)
-			if err != nil {
-				return nil, err
-			}
-
-			// Should append header for proper visualization.
-			return append([]byte(xml.Header), bytes...), nil
-		}
+		engine.responseMarshaler = *types.NewXMLMarshaler()
 	}
 }

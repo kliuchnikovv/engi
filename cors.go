@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/options"
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal/request"
+	"github.com/KlyuchnikovV/webapi/response"
 )
 
 const (
@@ -28,9 +28,9 @@ type cors struct {
 	allowedOrigins []string
 }
 
-func (c *cors) Handle(request *options.Request, response http.ResponseWriter) error {
+func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) error {
 	var (
-		r                  = request.Request()
+		r                  = request.GetRequest()
 		origin             = r.Header.Get(corsOriginHeader)
 		defaultCorsHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Origin"}
 	)
@@ -39,7 +39,7 @@ func (c *cors) Handle(request *options.Request, response http.ResponseWriter) er
 		return fmt.Errorf("origin '%s' is not allowed", origin)
 	}
 
-	response.Header().Set(corsAllowOriginHeader, origin)
+	writer.Header().Set(corsAllowOriginHeader, origin)
 
 	if r.Method != corsOptionMethod {
 		return nil
@@ -57,26 +57,26 @@ func (c *cors) Handle(request *options.Request, response http.ResponseWriter) er
 		}
 
 		if !contains(c.allowedHeaders, canonicalHeader) {
-			return types.NewErrorResponse(http.StatusForbidden, "")
+			return response.NewError(http.StatusForbidden, "")
 		}
 
 		allowedHeaders = append(allowedHeaders, canonicalHeader)
 	}
 
 	if len(allowedHeaders) > 0 {
-		response.Header().Set(corsAllowHeadersHeader, strings.Join(allowedHeaders, ","))
+		writer.Header().Set(corsAllowHeadersHeader, strings.Join(allowedHeaders, ","))
 	}
 
 	if _, ok := r.Header[corsRequestMethodHeader]; !ok {
-		return types.NewErrorResponse(http.StatusBadRequest, "CORS-Method header not found")
+		return response.NewError(http.StatusBadRequest, "CORS-Method header not found")
 	}
 
 	method := r.Header.Get(corsRequestMethodHeader)
 	if !contains(c.allowedMethods, method) {
-		return types.NewErrorResponse(http.StatusMethodNotAllowed, "CORS-Method header not found")
+		return response.NewError(http.StatusMethodNotAllowed, "CORS-Method header not found")
 	}
 
-	return types.ResponseObject{Code: 200}
+	return response.AsObject{Code: 200}
 }
 
 func contains(slice []string, item string) bool {

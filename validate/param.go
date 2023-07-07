@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/webapi/options"
-	"github.com/KlyuchnikovV/webapi/types"
+	"github.com/KlyuchnikovV/webapi/internal/request"
+	"github.com/KlyuchnikovV/webapi/response"
 )
 
 // NotEmpty - checks if parameter is not empty by it's type.
 // NOTE: boolean parameter will be ignored.
-func NotEmpty(p *options.Parameter) error {
+func NotEmpty(p *request.Parameter) error {
 	var isNotEmpty func() bool
 
 	switch typed := p.Parsed.(type) {
@@ -34,7 +34,7 @@ func NotEmpty(p *options.Parameter) error {
 		return nil
 	}
 
-	return types.NewErrorResponse(http.StatusBadRequest,
+	return response.NewError(http.StatusBadRequest,
 		"'%s' shouldn't be empty", p.Name,
 	)
 }
@@ -44,8 +44,8 @@ func NotEmpty(p *options.Parameter) error {
 //   - for 'int' and 'float' parameters - simple values comparison;
 //   - for 'string' - comparing with it's length;
 //   - for 'time' - comparing with time.Unix() value in seconds;
-func Greater(than float64) options.Option {
-	return func(p *options.Parameter) error {
+func Greater(than float64) request.Option {
+	return func(p *request.Parameter) error {
 		var greater func() bool
 
 		switch typed := p.Parsed.(type) {
@@ -63,7 +63,7 @@ func Greater(than float64) options.Option {
 			return nil
 		}
 
-		return types.NewErrorResponse(http.StatusBadRequest,
+		return response.NewError(http.StatusBadRequest,
 			"'%s' should be greater than %f", p.Name, than,
 		)
 	}
@@ -74,8 +74,8 @@ func Greater(than float64) options.Option {
 //   - for 'int' and 'float' parameters - simple values comparison;
 //   - for 'string' - comparing with it's length;
 //   - for 'time' - comparing with time.Unix() value in seconds;
-func Less(than float64) options.Option {
-	return func(p *options.Parameter) error {
+func Less(than float64) request.Option {
+	return func(p *request.Parameter) error {
 		var greater func() bool
 
 		switch typed := p.Parsed.(type) {
@@ -93,15 +93,15 @@ func Less(than float64) options.Option {
 			return nil
 		}
 
-		return types.NewErrorResponse(http.StatusBadRequest,
+		return response.NewError(http.StatusBadRequest,
 			"'%s' should be less than %f", p.Name, than,
 		)
 	}
 }
 
 // OR - combines several parameter checks and passes if one of them successful.
-func OR(opts ...options.Option) options.Option {
-	return func(p *options.Parameter) error {
+func OR(opts ...request.Option) request.Option {
+	return func(p *request.Parameter) error {
 		var (
 			passed bool
 			errs   []string
@@ -120,15 +120,15 @@ func OR(opts ...options.Option) options.Option {
 			return nil
 		}
 
-		return types.NewErrorResponse(http.StatusBadRequest,
+		return response.NewError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, strings.Join(errs, " and "),
 		)
 	}
 }
 
 // AND - combines several parameter checks and failing if one of them failed.
-func AND(opts ...options.Option) options.Option {
-	return func(p *options.Parameter) error {
+func AND(opts ...request.Option) request.Option {
+	return func(p *request.Parameter) error {
 		var err error
 
 		for _, option := range opts {
@@ -141,7 +141,7 @@ func AND(opts ...options.Option) options.Option {
 			return nil
 		}
 
-		return types.NewErrorResponse(http.StatusBadRequest,
+		return response.NewError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, err,
 		)
 	}

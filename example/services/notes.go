@@ -7,6 +7,7 @@ import (
 	"github.com/KlyuchnikovV/webapi/example/entity"
 	"github.com/KlyuchnikovV/webapi/options"
 	"github.com/KlyuchnikovV/webapi/parameter"
+	"github.com/KlyuchnikovV/webapi/placing"
 	"github.com/KlyuchnikovV/webapi/validate"
 )
 
@@ -32,9 +33,9 @@ func (api *NotesAPI) Routers() map[string]webapi.RouterByPath {
 			parameter.Body(new(entity.NotesRequest)),
 			parameter.Description("creates new note"),
 		),
-		"get": webapi.GET(
+		"get/{id}": webapi.GET(
 			api.GetByID,
-			parameter.Integer("id", options.InQuery,
+			parameter.Integer("id", placing.InPath,
 				options.Description("ID of request."),
 				validate.AND(
 					validate.Greater(1),
@@ -44,22 +45,22 @@ func (api *NotesAPI) Routers() map[string]webapi.RouterByPath {
 		),
 		"{object}/{id}": webapi.GET(
 			api.GetByIDFromPath,
-			parameter.Integer("id", options.InPath),
-			parameter.String("object", options.InPath),
+			parameter.Integer("id", placing.InPath),
+			parameter.String("object", placing.InPath),
 		),
 	}
 }
 
-func (api *NotesAPI) Create(ctx *webapi.Context) error {
-	if body := ctx.Request.Body(); body != nil {
+func (api *NotesAPI) Create(ctx webapi.Context) error {
+	if body := ctx.Body(); body != nil {
 		return ctx.OK(body)
 	}
 
 	return ctx.Created()
 }
 
-func (api *NotesAPI) GetByID(ctx *webapi.Context) error {
-	var id = ctx.Request.Integer("id", options.InQuery)
+func (api *NotesAPI) GetByID(ctx webapi.Context) error {
+	var id = ctx.Integer("id", placing.InPath)
 
 	// Do something with id (we will check it)
 	if id < 0 {
@@ -73,10 +74,10 @@ func (api *NotesAPI) GetByID(ctx *webapi.Context) error {
 	})
 }
 
-func (api *NotesAPI) GetByIDFromPath(ctx *webapi.Context) error {
+func (api *NotesAPI) GetByIDFromPath(ctx webapi.Context) error {
 	var (
-		id     = ctx.Request.Integer("id", options.InPath)
-		object = ctx.Request.String("object", options.InPath)
+		id     = ctx.Integer("id", placing.InPath)
+		object = ctx.String("object", placing.InPath)
 	)
 
 	// Do something with id (we will check it)

@@ -1,4 +1,4 @@
-package types
+package logger
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ type (
 	}
 )
 
-func NewLog(logger Logger) *Log {
+func New(logger Logger) *Log {
 	return &Log{
 		Logger: logger,
 	}

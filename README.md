@@ -1,17 +1,17 @@
 # WebApi
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/KlyuchnikovV/webapi/Go?style=for-the-badge)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/KlyuchnikovV/webapi/go.yml?style=for-the-badge)
 [![Go Report Card](https://goreportcard.com/badge/github.com/KlyuchnikovV/webapi?style=for-the-badge)](https://goreportcard.com/report/github.com/KlyuchnikovV/webapi)
-![GitHub](https://img.shields.io/github/license/KlyuchnikovV/webapi?style=for-the-badge)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/KlyuchnikovV/webapi?style=for-the-badge)
+![GitHub gso.mod Go version](https://img.shields.io/github/go-mod/go-version/KlyuchnikovV/webapi?style=for-the-badge)
 [![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://pkg.go.dev/github.com/KlyuchnikovV/webapi)
-![Visitors](https://visitor-badges.glitch.me?username=KlyuchnikovV&repo=webapi&style=for-the-badge&label=Views)
+[![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fwebapi&label=Views&labelColor=%23697689&countColor=%23555555)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fwebapi)
+![GitHub](https://img.shields.io/github/license/KlyuchnikovV/webapi?style=for-the-badge)
 
 
 ## A web framework that prioritizes developer usability.
 
 ### Description
-This framework aims to write more structured, human-centric code.
+This framework forces developer to write more structured, human-centric code.
 
 ### Installation
 
@@ -23,61 +23,77 @@ go get github.com/KlyuchnikovV/webapi
 The idea of this framework is to create **services**, each of which works with one model.
 
 ```golang
-type RequestAPI struct {
-    webapi.API
-}
+type RequestAPI struct{}
 
-func NewRequestAPI() webapi.API {
-    return &RequestAPI{
-        // 'request' string is a prefix to the query
-        // so full path to GetByID handler will be '/api/request/get'
-		API: webapi.New("request"),
-	}
+func (api *RequestAPI) Prefix() string {
+	return "request"
 }
 ```
 
-For each service, the `Routers` method defined, which gives handlers upon registration.
+Each service must implement 2 methods: `Prefix` and `Routers`:
+
+- `Prefix` gives route prefix and serves as name of your service;
+- `Routers` defines handlers, their paths and their mandatory parameters;
 
 The handler described as a **relative** path to the handler wrapped in a request method (`POST`, `GET` ...<!--(godoc link?)-->)
-with additional middleware functions, including those for requesting mandatory query parameters.
+with additional middleware functions, including those for requesting mandatory parameters:
 
 ```golang
 func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
 	return map[string]webapi.RouterFunc{
-		"get":    api.GET(api.GetByID, api.WithInt("id")),
-		"create": api.POST(api.Create, api.Body(&Body{})),
+		"get": webapi.GET(
+			api.GetByID,
+			parameter.Integer("id", placing.InQuery,
+				options.Description("ID of the request."),
+				validate.AND(validate.Greater(1), validate.Less(10)),
+			),
+		),
 	}
 }
 ```
 
-Further, when requesting, all the necessary parameters will be checked for the presence and type (if the required parameter is missing, BadRequest will be returned) and then will be available for use in handlers through the context `ctx.QueryParams`. <!--(godoc link?)-->
+Further, when requesting, all the necessary parameters will be checked for the presence and type (if the required parameter is missing, `BadRequest` error will be returned) and then will be available for use in handlers through the context `ctx`. <!--(godoc link?)-->
 
-Also, through the context `ctx.Response`<!--(godoc link?)-->, you can form a result or an error using predefined functions.
+Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an error using predefined functions for the most used answers:
 
 ```golang
 func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
-    var id = ctx.QueryParams.Integer("id")
+    var id = ctx.Integer("id", placing.InQuery)
 
-    // Do something with id (we will check it)
-    if id < 0 {
-        return ctx.Response.BadRequest("id can't be negative (got: %d)", id)
+    // Do something with id
+    if id == 5 {
+        return ctx.BadRequest("id can't be '%d'", id)
     }
 
-    return ctx.Response.OK(fmt.Sprintf("got id: '%d'", id))
+    return ctx.OK(
+		fmt.Sprintf("got id: '%d'", id),
+	)
 }
 ```
 
-As a result, to create an application, it remains to register the service and run the api.
+As a result, to create an application, it remains to create server with `webapi.New` passing tcp address and global (for every handler) prefix, register service and start the api.
 
 ```golang
 func main() {
-    w := webapi.New()
+   	w := webapi.New(
+		":8080",
+		webapi.WithPrefix("api"),
+		// Define all responses as JSON object
+		webapi.ResponseAsJSON(
+			// Define all responses use Result field to wrap response and Error field to wrap error
+			new(response.AsObject),
+		),
+	)
 
-    w.RegisterServices(
-        service.NewRequestAPI(),
-    )
+	if err := w.RegisterServices(
+		new(services.RequestAPI),
+	); err != nil {
+		log.Fatal(err)
+	}
 
-    w.Start("localhost:8080")
+	if err := w.Start(); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
