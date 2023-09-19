@@ -67,7 +67,7 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var ctx = context.NewContext(w, r, api.marshaler, api.responser)
 
 	for _, middleware := range api.middlewares {
-		err := middleware(ctx.Request, ctx.Response.GetResponse())
+		err := middleware(ctx.Request, ctx.Response.ResponseWriter())
 		if err == nil {
 			continue
 		}
@@ -122,26 +122,30 @@ func (api *Service) add(
 }
 
 func (api *Service) handle(route Route, middlewares ...request.HandlerParams) context.Handler {
-	return func(ctx *context.Context) {
+	return func(ctx *context.Context) error {
 		var response response.AsObject
 
 		for _, middleware := range middlewares {
-			if err := middleware(ctx.Request, ctx.Response.GetResponse()); err != nil {
+			if err := middleware(ctx.Request, ctx.Response.ResponseWriter()); err != nil {
 				errors.As(err, &response)
 
 				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
 					api.log.SendErrorf(err.Error())
+					return err
 				}
 
-				return
+				return err
 			}
 		}
 
 		if err := route(ctx); err != nil {
 			if err := ctx.Response.InternalServerError(err.Error()); err != nil {
 				api.log.SendErrorf(err.Error())
+				return err
 			}
 		}
+
+		return nil
 	}
 }
 

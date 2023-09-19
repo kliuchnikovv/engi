@@ -12,6 +12,8 @@ import (
 	"github.com/KlyuchnikovV/webapi/response"
 )
 
+// TODO: add checking length of request from comments about field length
+
 const (
 	defaultPrefix  = "api"
 	defaultAddress = ":8080"
@@ -99,33 +101,67 @@ func (e *Engine) Start() error {
 }
 
 type Context interface {
-	// AddInPathParameter(key string, value string)
-	GetParameter(string, placing.Placing) string
-	Headers() map[string][]string
-	All() map[string]string
+	// Request.
 
-	// Parameters
+	// Headers - returns request headers.
+	Headers() map[string][]string
+	// All - returns all parsed parameters.
+	All() map[placing.Placing]map[string]string
+	// GetParameter - returns parameter value from defined place.
+	GetParameter(string, placing.Placing) string
+	// GetRequest - return http.Request object associated with request.
 	GetRequest() *http.Request
+	// Body - returns request body.
+	// Body must be requested by 'api.Body(pointer)' or 'api.CustomBody(unmarshaler, pointer)'.
 	Body() interface{}
+	// Bool - returns boolean parameter.
+	// Mandatory parameter should be requested by 'api.Bool'.
+	// Otherwise, parameter will be obtained by key and its value will be checked for truth.
 	Bool(string, placing.Placing) bool
-	Float(string, placing.Placing) float64
+	// Integer - returns integer parameter.
+	// Mandatory parameter should be requested by 'api.Integer'.
+	// Otherwise, parameter will be obtained by key and its value will be converted. to int64.
 	Integer(string, placing.Placing) int64
-	String(key string, paramPlacing placing.Placing) string
+	// Float - returns floating point number parameter.
+	// Mandatory parameter should be requested by 'api.Float'.
+	// Otherwise, parameter will be obtained by key and its value will be converted to float64.
+	Float(string, placing.Placing) float64
+	// String - returns String parameter.
+	// Mandatory parameter should be requested by 'api.String'.
+	// Otherwise, parameter will be obtained by key.
+	String(string, placing.Placing) string
+	// Time - returns date-time parameter.
+	// Mandatory parameter should be requested by 'api.Time'.
+	// Otherwise, parameter will be obtained by key and its value will be converted to time using 'layout'.
 	Time(key string, layout string, paramPlacing placing.Placing) time.Time
 
-	// Responses
-	GetResponse() http.ResponseWriter
-	BadRequest(format string, args ...interface{}) error
-	Created() error
-	Error(code int, format string, args ...interface{}) error
-	Forbidden(format string, args ...interface{}) error
-	InternalServerError(format string, args ...interface{}) error
-	JSON(code int, payload interface{}) error
-	MethodNotAllowed(format string, args ...interface{}) error
-	NoContent() error
-	NotFound(format string, args ...interface{}) error
-	OK(payload interface{}) error
+	// Responses.
+
+	// ResponseWriter - returns http.ResponseWriter associated with request.
+	ResponseWriter() http.ResponseWriter
+	// Object - responses with provided custom code and body.
+	// Body will be marshaled using service-defined object and marshaler.
+	Object(code int, payload interface{}) error
+	// WithourContent - responses with provided custom code and no body.
 	WithoutContent(code int) error
+	// Error - responses custom error with provided code and formatted string message.
+	Error(code int, format string, args ...interface{}) error
+	// OK - writes payload into json's 'result' field with 200 http code.
+	OK(payload interface{}) error
+	// Created - responses with 201 http code and no content.
+	Created() error
+	// NoContent - responses with 204 http code and no content.
+	NoContent() error
+	// BadRequest - responses with 400 code and provided formatted string message.
+	BadRequest(format string, args ...interface{}) error
+	// Forbidden - responses with 403 error code and provided formatted string message.
+	Forbidden(format string, args ...interface{}) error
+	// NotFound - responses with 404 error code and provided formatted string message.
+	NotFound(format string, args ...interface{}) error
+	// MethodNotAllowed - responses with 405 error code and provided formatted string message.
+	MethodNotAllowed(format string, args ...interface{}) error
+	// InternalServerError - responses with 500 error code and provided formatted string message.
+	InternalServerError(format string, args ...interface{}) error
 }
 
 type Route func(Context) error

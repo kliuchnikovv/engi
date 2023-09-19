@@ -12,6 +12,8 @@ var (
 	valueRegexp     = regexp.MustCompile("^[a-zA-Z0-9]+") // TODO: extend it
 )
 
+type HandlerNodes []HanlderNode
+
 type HanlderNode interface {
 	Add(context.Handler, ...string)
 	Handle(string, *context.Context) bool
@@ -140,7 +142,9 @@ func (r *RegexpHandler) Handle(path string, ctx *context.Context) bool {
 	ctx.Request.AddInPathParameter(r.name, parts[0])
 
 	if len(parts) == 1 {
-		r.Handler(ctx)
+		if err := r.Handler(ctx); err != nil {
+			return false
+		}
 		return true
 	}
 

@@ -69,7 +69,7 @@ func (api *RequestAPI) Create(ctx webapi.Context) error {
 }
 
 func (api *RequestAPI) CreateSubRequest(ctx webapi.Context) error {
-	return ctx.JSON(http.StatusCreated,
+	return ctx.Object(http.StatusCreated,
 		fmt.Sprintf("sub request created with body %#v", []entity.RequestBody{}),
 	)
 }

@@ -79,9 +79,6 @@ func New(request *http.Request) *Request {
 	return &r
 }
 
-// Bool - returns boolean parameter.
-// Mandatory parameter should be requested by 'api.Bool'.
-// Otherwise, parameter will be obtained by key and its value will be checked for truth.
 func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 	if r.isMandatoryParam(key, paramPlacing) {
 		return r.parameters[paramPlacing][key].Parsed.(bool)
@@ -92,9 +89,6 @@ func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 	return result
 }
 
-// QueryInteger - returns integer parameter.
-// Mandatory parameter should be requested by 'api.Integer'.
-// Otherwise, parameter will be obtained by key and its value will be converted. to int64.
 func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 	if r.isMandatoryParam(key, paramPlacing) {
 		return r.parameters[paramPlacing][key].Parsed.(int64)
@@ -105,9 +99,6 @@ func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 	return result
 }
 
-// QueryFloat - returns floating point number parameter.
-// Mandatory parameter should be requested by 'api.Float'.
-// Otherwise, parameter will be obtained by key and its value will be converted to float64.
 func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 	if r.isMandatoryParam(key, paramPlacing) {
 		return r.parameters[paramPlacing][key].Parsed.(float64)
@@ -118,9 +109,6 @@ func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 	return result
 }
 
-// QueryString - returns String parameter.
-// Mandatory parameter should be requested by 'api.String'.
-// Otherwise, parameter will be obtained by key.
 func (r *Request) String(key string, paramPlacing placing.Placing) string {
 	if r.isMandatoryParam(key, paramPlacing) {
 		return r.parameters[paramPlacing][key].Parsed.(string)
@@ -129,9 +117,6 @@ func (r *Request) String(key string, paramPlacing placing.Placing) string {
 	return r.GetParameter(key, paramPlacing)
 }
 
-// QueryTime - returns date-time parameter.
-// Mandatory parameter should be requested by 'api.Time'.
-// Otherwise, parameter will be obtained by key and its value will be converted to time using 'layout'.
 func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Time {
 	if r.isMandatoryParam(key, paramPlacing) {
 		return r.parameters[paramPlacing][key].Parsed.(time.Time)
@@ -142,26 +127,24 @@ func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Ti
 	return result
 }
 
-// All - returns all parameters.
-func (r *Request) All() map[string]string {
-	var parameters = make(map[string]string)
+func (r *Request) All() map[placing.Placing]map[string]string {
+	var parameters = make(map[placing.Placing]map[string]string)
 
 	for place, params := range r.parameters {
+		parameters[place] = make(map[string]string)
+
 		for name := range params {
-			parameters[name] = r.GetParameter(name, place)
+			parameters[place][name] = r.GetParameter(name, place)
 		}
 	}
 
 	return parameters
 }
 
-// Body - returns request body.
-// Body must be requested by 'api.Body(pointer)' or 'api.CustomBody(unmarshaler, pointer)'.
 func (r *Request) Body() interface{} {
 	return r.body.Parsed
 }
 
-// isMandatoryParam - checks if parameter was requested.
 func (r *Request) isMandatoryParam(key string, paramPlacing placing.Placing) bool {
 	switch paramPlacing {
 	case placing.InPath:

@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	Handler func(*Context)
+	Handler func(*Context) error
 
 	// Context - provides methods for extracting data from query and response back.
 	Context struct {

@@ -80,7 +80,8 @@ func main() {
         webapi.WithPrefix("api"),
         // Define all responses as JSON object
         webapi.ResponseAsJSON(
-            // Define all responses use Result field to wrap response and Error field to wrap error
+            // Define all responses use Result field to wrap response and
+            //    Error field to wrap errors
             new(response.AsObject),
         ),
     )
