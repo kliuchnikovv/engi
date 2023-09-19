@@ -65,14 +65,16 @@ func (s *StringHandler) Add(handler context.Handler, parts ...string) {
 func (s *StringHandler) Handle(path string, ctx *context.Context) bool {
 	path = strings.TrimLeft(path, "/")
 
-	if !strings.HasPrefix(strings.TrimLeft(path, "/"), s.pattern) {
+	if !strings.HasPrefix(path, s.pattern) {
 		return false
 	}
 
 	var subPath, _ = strings.CutPrefix(path, s.pattern)
 
 	if len(subPath) == 0 {
-		_ = s.Handler(ctx)
+		if err := s.Handler(ctx); err != nil {
+			return false
+		}
 		return true
 	}
 
