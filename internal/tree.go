@@ -72,7 +72,7 @@ func (s *StringHandler) Handle(path string, ctx *context.Context) bool {
 	var subPath, _ = strings.CutPrefix(path, s.pattern)
 
 	if len(subPath) == 0 {
-		s.Handler(ctx)
+		_ = s.Handler(ctx)
 		return true
 	}
 
