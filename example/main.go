@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/KlyuchnikovV/webapi"
 	"github.com/KlyuchnikovV/webapi/example/services"
 	"github.com/KlyuchnikovV/webapi/response"
+	"log"
 )
 
 func main() {
