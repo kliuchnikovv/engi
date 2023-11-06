@@ -1,18 +1,25 @@
-package webapi
+package engi
 
 import (
+	goContext "context"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/logger"
-	"github.com/KlyuchnikovV/webapi/placing"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/logger"
+	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 // TODO: add checking length of request from comments about field length
+// TODO: authorization
+// TODO: string builder
+// TODO: benchmarks
+// TODO: tests
+// TODO: rename
+// TODO: work with context
 
 const (
 	defaultPrefix  = "api"
@@ -95,12 +102,16 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 // Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
 func (e *Engine) Start() error {
 	e.log.Infof("Starting on %s", e.server.Addr)
-	e.log.Infof("WebApi started...")
+	e.log.Infof("engi started...")
 
 	return e.server.ListenAndServe()
 }
 
 type Context interface {
+	// Basic go context
+
+	goContext.Context
+
 	// Request.
 
 	// Headers - returns request headers.

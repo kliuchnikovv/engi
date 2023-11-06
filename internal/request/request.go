@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/webapi/placing"
+	"github.com/KlyuchnikovV/engi/placing"
 )
 
 const (

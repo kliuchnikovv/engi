@@ -3,16 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/KlyuchnikovV/webapi"
-	"github.com/KlyuchnikovV/webapi/example/services"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi"
+	"github.com/KlyuchnikovV/engi/example/services"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 func main() {
-	w := webapi.New(
+	w := engi.New(
 		":8080",
-		webapi.WithPrefix("api"),
-		webapi.ResponseAsJSON(new(response.AsIs)),
+		engi.WithPrefix("api"),
+		engi.ResponseAsJSON(new(response.AsIs)),
 	)
 
 	if err := w.RegisterServices(

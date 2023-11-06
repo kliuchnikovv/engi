@@ -1,11 +1,12 @@
 package context
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/internal/response"
-	"github.com/KlyuchnikovV/webapi/internal/types"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/internal/response"
+	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
 type (
@@ -13,6 +14,7 @@ type (
 
 	// Context - provides methods for extracting data from query and response back.
 	Context struct {
+		context.Context // TODO: ignore
 		*request.Request
 		*response.Response
 	}
@@ -25,6 +27,7 @@ func NewContext(
 	responseObject types.Responser,
 ) *Context {
 	return &Context{
+		Context:  r.Context(),
 		Request:  request.New(r),
 		Response: response.New(writer, responseMarshaler, responseObject),
 	}

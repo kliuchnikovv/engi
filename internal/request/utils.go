@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/placing"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 // ExtractParam - extracting parameter from context, calls middleware and saves to 'context.parameters[from][key]'.

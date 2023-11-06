@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KlyuchnikovV/webapi/internal/types"
+	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
 // Response - provide methods for creating responses.

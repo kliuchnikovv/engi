@@ -1,6 +1,6 @@
 package options
 
-import "github.com/KlyuchnikovV/webapi/internal/request"
+import "github.com/KlyuchnikovV/engi/internal/request"
 
 // Description - adds string description to parameter.
 // Can be used in errors description or in documentation.

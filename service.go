@@ -1,16 +1,16 @@
-package webapi
+package engi
 
 import (
 	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal"
-	"github.com/KlyuchnikovV/webapi/internal/context"
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/logger"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal"
+	"github.com/KlyuchnikovV/engi/internal/context"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/logger"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 type (

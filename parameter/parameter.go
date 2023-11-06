@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/placing"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 // Bool - mandatory boolean Parameter from request by 'key'.

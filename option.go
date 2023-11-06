@@ -1,12 +1,12 @@
-package webapi
+package engi
 
 import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/logger"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/logger"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 type Option func(*Engine)

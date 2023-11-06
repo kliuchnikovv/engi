@@ -1,12 +1,12 @@
-package webapi
+package engi
 
 import (
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 const (
