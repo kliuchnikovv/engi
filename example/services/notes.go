@@ -7,14 +7,13 @@ import (
 	"github.com/KlyuchnikovV/engi/example/entity"
 	"github.com/KlyuchnikovV/engi/options"
 	"github.com/KlyuchnikovV/engi/parameter"
+	"github.com/KlyuchnikovV/engi/parameter/path"
 	"github.com/KlyuchnikovV/engi/placing"
 	"github.com/KlyuchnikovV/engi/validate"
 )
 
 // Example service.
 type NotesAPI struct{}
-
-type Func func(*engi.Engine) error
 
 func (api *NotesAPI) Prefix() string {
 	return "notes"
@@ -26,27 +25,24 @@ func (api *NotesAPI) Middlewares() []engi.Middleware {
 	}
 }
 
-func (api *NotesAPI) Routers() map[string]engi.RouterByPath {
-	return map[string]engi.RouterByPath{
-		"create": engi.POST(
-			api.Create,
+func (api *NotesAPI) Routers() engi.Routes {
+	return engi.Routes{
+		"create": engi.POST(api.Create,
+			// parameter.Description("creates new note"),
 			parameter.Body(new(entity.NotesRequest)),
-			parameter.Description("creates new note"),
 		),
-		"get/{id}": engi.GET(
-			api.GetByID,
-			parameter.Integer("id", placing.InPath,
-				options.Description("ID of request."),
+		"get/{id}": engi.GET(api.GetByID,
+			path.Integer("id", // TODO: validate and panic if in path parameter not mentioned in string
+				options.Description("ID of request."), // TODO: parameter.Description?
 				validate.AND(
 					validate.Greater(1),
 					validate.Less(10),
 				),
 			),
 		),
-		"{object}/{id}": engi.GET(
-			api.GetByIDFromPath,
-			parameter.Integer("id", placing.InPath),
-			parameter.String("object", placing.InPath),
+		"{object}/{id}": engi.GET(api.GetByIDFromPath,
+			path.Integer("id"),
+			path.String("object"),
 		),
 	}
 }

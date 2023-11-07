@@ -1,8 +1,10 @@
-package parameter
+package path
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KlyuchnikovV/engi/internal/request"
@@ -10,25 +12,31 @@ import (
 	"github.com/KlyuchnikovV/engi/response"
 )
 
-type parameter struct {
+type pathParameter struct {
 	key     string
-	place   placing.Placing
 	options []request.Option
 	extract func(string) (interface{}, error)
 }
 
-func (p *parameter) Handle(r *request.Request, w http.ResponseWriter) error {
-	return request.ExtractParam(p.key, p.place, r, p.options, p.extract)
+func (p *pathParameter) Handle(r *request.Request, w http.ResponseWriter) error {
+	return request.ExtractParam(p.key, placing.InPath, r, p.options, p.extract)
+}
+
+func (p *pathParameter) Validate(path string) error {
+	if !strings.Contains(path, fmt.Sprintf("{%s}", p.key)) {
+		return fmt.Errorf("path parameter not present in path definition (path: %s, param: %s)", path, p.key)
+	}
+
+	return nil
 }
 
 // Bool - mandatory boolean Parameter from request by 'key'.
 //
 // Result can be retrieved from context using 'context.QueryParams.Bool'.
-func Bool(key string, place placing.Placing, opts ...request.Option) request.Middleware {
-	return &parameter{
+func Bool(key string, opts ...request.Option) request.Middleware {
+	return &pathParameter{
 		key:     key,
 		options: opts,
-		place:   place,
 		extract: func(request string) (interface{}, error) {
 			return strconv.ParseBool(request)
 		},
@@ -38,11 +46,10 @@ func Bool(key string, place placing.Placing, opts ...request.Option) request.Mid
 // Integer - queries mandatory integer Parameter from request by 'key'.
 //
 // Result can be retrieved from context using 'context.QueryParams.Integer'.
-func Integer(key string, place placing.Placing, opts ...request.Option) request.Middleware {
-	return &parameter{
+func Integer(key string, opts ...request.Option) request.Middleware {
+	return &pathParameter{
 		key:     key,
 		options: opts,
-		place:   place,
 		extract: func(p string) (interface{}, error) {
 			result, err := strconv.ParseInt(p, request.IntBase, request.BitSize)
 			if err != nil {
@@ -57,11 +64,10 @@ func Integer(key string, place placing.Placing, opts ...request.Option) request.
 // Float - mandatory floating point number Parameter from request by 'key'.
 //
 // Result can be retrieved from context using 'context.QueryParams.Float'.
-func Float(key string, place placing.Placing, opts ...request.Option) request.Middleware {
-	return &parameter{
+func Float(key string, opts ...request.Option) request.Middleware {
+	return &pathParameter{
 		key:     key,
 		options: opts,
-		place:   place,
 		extract: func(p string) (interface{}, error) {
 			result, err := strconv.ParseFloat(p, request.BitSize)
 			if err != nil {
@@ -76,11 +82,10 @@ func Float(key string, place placing.Placing, opts ...request.Option) request.Mi
 // String - mandatory string Parameter from request by 'key'.
 //
 // Result can be retrieved from context using 'context.QueryParams.String'.
-func String(key string, place placing.Placing, opts ...request.Option) request.Middleware {
-	return &parameter{
+func String(key string, opts ...request.Option) request.Middleware {
+	return &pathParameter{
 		key:     key,
 		options: opts,
-		place:   place,
 		extract: func(request string) (interface{}, error) {
 			return request, nil
 		},
@@ -90,11 +95,10 @@ func String(key string, place placing.Placing, opts ...request.Option) request.M
 // Time - mandatory time Parameter from request by 'key' using 'layout'.
 //
 // Result can be retrieved from context using 'context.QueryParams.Time'.
-func Time(key, layout string, place placing.Placing, opts ...request.Option) request.Middleware {
-	return &parameter{
+func Time(key, layout string, opts ...request.Option) request.Middleware {
+	return &pathParameter{
 		key:     key,
 		options: opts,
-		place:   place,
 		extract: func(request string) (interface{}, error) {
 			result, err := time.Parse(layout, request)
 			if err != nil {
@@ -107,23 +111,3 @@ func Time(key, layout string, place placing.Placing, opts ...request.Option) req
 		},
 	}
 }
-
-// func Description(desc string) 
-
-// func Description(desc string) request.Middleware {
-// 	return func(request *request.Request, _ http.ResponseWriter) error {
-// 		request.Description = desc
-// 		return nil
-// 	}
-// }
-
-// func Header(key string) request.Middleware {
-// 	return func(request *request.Request, _ http.ResponseWriter) error {
-// 		header, ok := request.GetRequest().Header[key]
-// 		if !ok || len(header) == 0 {
-// 			return fmt.Errorf("no '%s' header found", key)
-// 		}
-
-// 		return nil
-// 	}
-// }

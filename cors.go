@@ -103,7 +103,7 @@ func UseCORS(opts ...CORSOption) Middleware {
 			option(&cors)
 		}
 
-		srv.middlewares = append(srv.middlewares, cors.Handle)
+		srv.middlewares = append(srv.middlewares, &cors)
 	}
 }
 

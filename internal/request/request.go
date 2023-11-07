@@ -1,6 +1,7 @@
 package request
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,8 +16,13 @@ const (
 )
 
 type (
-	HandlerParams func(*Request, http.ResponseWriter) error
-	Option        func(*Parameter) error
+	Option     func(*Parameter) error
+	Middleware interface {
+		Handle(*Request, http.ResponseWriter) error
+	}
+	ParamsValidator interface {
+		Validate(string) error
+	}
 )
 
 type Parameter struct {
@@ -81,7 +87,11 @@ func New(request *http.Request) *Request {
 
 func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 	if r.isMandatoryParam(key, paramPlacing) {
-		return r.parameters[paramPlacing][key].Parsed.(bool)
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(bool); ok {
+			return result
+		}
+
+		panic(fmt.Errorf("conversion parameter to bool failed (key: %s)", key))
 	}
 
 	result, _ := strconv.ParseBool(r.String(key, paramPlacing))
@@ -91,7 +101,11 @@ func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 
 func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 	if r.isMandatoryParam(key, paramPlacing) {
-		return r.parameters[paramPlacing][key].Parsed.(int64)
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(int64); ok {
+			return result
+		}
+
+		panic(fmt.Errorf("conversion parameter to int64 failed (key: %s)", key))
 	}
 
 	result, _ := strconv.ParseInt(r.String(key, paramPlacing), IntBase, BitSize)
@@ -101,7 +115,11 @@ func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 
 func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 	if r.isMandatoryParam(key, paramPlacing) {
-		return r.parameters[paramPlacing][key].Parsed.(float64)
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(float64); ok {
+			return result
+		}
+
+		panic(fmt.Errorf("conversion parameter to float64 failed (key: %s)", key))
 	}
 
 	result, _ := strconv.ParseFloat(r.String(key, paramPlacing), BitSize)
@@ -111,7 +129,11 @@ func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 
 func (r *Request) String(key string, paramPlacing placing.Placing) string {
 	if r.isMandatoryParam(key, paramPlacing) {
-		return r.parameters[paramPlacing][key].Parsed.(string)
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(string); ok {
+			return result
+		}
+
+		panic(fmt.Errorf("conversion parameter to string failed (key: %s)", key))
 	}
 
 	return r.GetParameter(key, paramPlacing)
@@ -119,7 +141,11 @@ func (r *Request) String(key string, paramPlacing placing.Placing) string {
 
 func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Time {
 	if r.isMandatoryParam(key, paramPlacing) {
-		return r.parameters[paramPlacing][key].Parsed.(time.Time)
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(time.Time); ok {
+			return result
+		}
+
+		panic(fmt.Errorf("conversion parameter to time failed (key: %s)", key))
 	}
 
 	result, _ := time.Parse(layout, r.String(key, paramPlacing))

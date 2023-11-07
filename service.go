@@ -9,8 +9,8 @@ import (
 	"github.com/KlyuchnikovV/engi/internal/context"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/logger"
 	"github.com/KlyuchnikovV/engi/response"
+	"github.com/KlyuchnikovV/logist"
 )
 
 type (
@@ -19,37 +19,37 @@ type (
 		Prefix() string
 
 		// Routers returns the handlers and their relative paths (relative to the service) for registration.
-		Routers() map[string]RouterByPath
+		Routers() Routes
 	}
 
 	MiddlewaresAPI interface {
 		Middlewares() []Middleware
 	}
-
 	// Service - provides basic service methods.
 	Service struct {
-		middlewares []request.HandlerParams
+		middlewares []request.Middleware
 
 		handlers map[string]internal.HanlderNode
 
 		marshaler types.Marshaler
 		responser types.Responser
 
-		log *logger.Log
+		logger *logist.Logist
 
 		api  ServiceAPI
 		path string
 	}
 
-	RouterByPath func(*Service, string)
-	Middleware   func(*Service)
+	RouteByPath func(*Service, string) error
+	Middleware  func(*Service)
+	Routes      map[string]RouteByPath
 )
 
 func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	return &Service{
 		handlers: make(map[string]internal.HanlderNode),
 
-		log:       engine.log,
+		logger:    engine.logger,
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
 
@@ -58,23 +58,25 @@ func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	}
 }
 
-// ServeHTTP should write reply headers and data to the ResponseWriter
+// Serve should write reply headers and data to the ResponseWriter
 // and then return. Returning signals that the request is finished; it
 // is not valid to use the ResponseWriter or read from the
 // Request.Body after or concurrently with the completion of the
-// ServeHTTP call.
-func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var ctx = context.NewContext(w, r, api.marshaler, api.responser)
+// Serve call.
+func (srv *Service) Serve(uri string, r *http.Request, w http.ResponseWriter) {
+	var ctx = context.NewContext(w, r, srv.marshaler, srv.responser)
 
-	for _, middleware := range api.middlewares {
-		err := middleware(ctx.Request, ctx.Response.ResponseWriter())
+	for _, middleware := range srv.middlewares {
+		err := middleware.Handle(ctx.Request, ctx.Response.ResponseWriter())
 		if err == nil {
 			continue
 		}
 
 		var response response.AsObject
 
-		errors.As(err, &response)
+		if ok := errors.As(err, &response); !ok {
+			//  TODO:
+		}
 
 		switch response.Code {
 		case http.StatusOK:
@@ -84,53 +86,68 @@ func (api *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
-			api.log.SendErrorf(err.Error())
+			srv.logger.Error(err.Error())
 		}
 
 		return
 	}
 
-	if _, ok := api.handlers[r.Method]; !ok {
+	uri, _ = strings.CutPrefix(strings.Trim(uri, "/"), srv.api.Prefix())
+
+	if _, ok := srv.handlers[r.Method]; !ok {
 		if err := ctx.Response.NotFound("method '%s' not appliable for '%s'", r.Method, r.URL.Path); err != nil {
-			api.log.SendErrorf(err.Error())
+			srv.logger.Error(err.Error())
 		}
 
 		return
 	}
 
-	if !api.handlers[r.Method].Handle(r.URL.Path, ctx) {
+	if !srv.handlers[r.Method].Handle(uri, ctx) {
 		if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-			api.log.SendErrorf(err.Error())
+			srv.logger.Error(err.Error())
 		}
 	}
 }
 
 // add - creates route with custom method and path.
-func (api *Service) add(
+func (srv *Service) add(
 	method, path string,
 	route Route,
-	middlewares ...request.HandlerParams,
-) {
-	if _, ok := api.handlers[method]; !ok {
-		api.handlers[method] = internal.NewStringHandler("", nil)
+	middlewares ...request.Middleware,
+) error {
+	if _, ok := srv.handlers[method]; !ok {
+		srv.handlers[method] = internal.NewStringHandler("", nil)
 	}
 
-	api.handlers[method].Add(
-		api.handle(route, middlewares...),
+	for _, middleware := range middlewares {
+		validator, ok := middleware.(request.ParamsValidator)
+		if !ok {
+			continue
+		}
+
+		if err := validator.Validate(path); err != nil {
+			return err
+		}
+	}
+
+	srv.handlers[method].Add(
+		srv.handle(route, middlewares...),
 		strings.Split(path, "/")...,
 	)
+
+	return nil
 }
 
-func (api *Service) handle(route Route, middlewares ...request.HandlerParams) context.Handler {
+func (srv *Service) handle(route Route, middlewares ...request.Middleware) context.Handler {
 	return func(ctx *context.Context) error {
 		var response response.AsObject
 
 		for _, middleware := range middlewares {
-			if err := middleware(ctx.Request, ctx.Response.ResponseWriter()); err != nil {
+			if err := middleware.Handle(ctx.Request, ctx.Response.ResponseWriter()); err != nil {
 				errors.As(err, &response)
 
 				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
-					api.log.SendErrorf(err.Error())
+					srv.logger.Error(err.Error())
 					return err
 				}
 
@@ -140,7 +157,7 @@ func (api *Service) handle(route Route, middlewares ...request.HandlerParams) co
 
 		if err := route(ctx); err != nil {
 			if err := ctx.Response.InternalServerError(err.Error()); err != nil {
-				api.log.SendErrorf(err.Error())
+				srv.logger.Error(err.Error())
 				return err
 			}
 		}
@@ -150,64 +167,64 @@ func (api *Service) handle(route Route, middlewares ...request.HandlerParams) co
 }
 
 // GET - implements GET api method call.
-func GET(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodGet, path, route, middlewares...)
+func GET(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodGet, path, route, middlewares...)
 	}
 }
 
 // PUT - implements PUT api method call.
-func PUT(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodPut, path, route, middlewares...)
+func PUT(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodPut, path, route, middlewares...)
 	}
 }
 
 // HEAD - implements HEAD api method call.
-func HEAD(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodHead, path, route, middlewares...)
+func HEAD(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodHead, path, route, middlewares...)
 	}
 }
 
 // POST - implements POST api method call.
-func POST(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodPost, path, route, middlewares...)
+func POST(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodPost, path, route, middlewares...)
 	}
 }
 
 // PATCH - implements PATCH api method call.
-func PATCH(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodPatch, path, route, middlewares...)
+func PATCH(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodPatch, path, route, middlewares...)
 	}
 }
 
 // TRACE - implements TRACE api method call.
-func TRACE(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodTrace, path, route, middlewares...)
+func TRACE(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodTrace, path, route, middlewares...)
 	}
 }
 
 // DELETE - implements DELETE api method call.
-func DELETE(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodDelete, path, route, middlewares...)
+func DELETE(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodDelete, path, route, middlewares...)
 	}
 }
 
 // CONNECT - implements CONNECT api method call.
-func CONNECT(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodConnect, path, route, middlewares...)
+func CONNECT(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodConnect, path, route, middlewares...)
 	}
 }
 
 // OPTIONS - implements OPTIONS api method call.
-func OPTIONS(route Route, middlewares ...request.HandlerParams) RouterByPath {
-	return func(api *Service, path string) {
-		api.add(http.MethodOptions, path, route, middlewares...)
+func OPTIONS(route Route, middlewares ...request.Middleware) RouteByPath {
+	return func(srv *Service, path string) error {
+		return srv.add(http.MethodOptions, path, route, middlewares...)
 	}
 }

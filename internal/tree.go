@@ -75,6 +75,7 @@ func (s *StringHandler) Handle(path string, ctx *context.Context) bool {
 		if err := s.Handler(ctx); err != nil {
 			return false
 		}
+
 		return true
 	}
 
@@ -147,6 +148,7 @@ func (r *RegexpHandler) Handle(path string, ctx *context.Context) bool {
 		if err := r.Handler(ctx); err != nil {
 			return false
 		}
+
 		return true
 	}
 

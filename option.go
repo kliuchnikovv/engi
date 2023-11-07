@@ -1,11 +1,11 @@
 package engi
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/logger"
 	"github.com/KlyuchnikovV/engi/response"
 )
 
@@ -33,27 +33,27 @@ func Use(f func(*http.Server)) Option {
 // WithPrefix - sets api's prefix.
 func WithPrefix(prefix string) Option {
 	return func(engine *Engine) {
-		engine.apiPrefix = strings.Trim(prefix, "/")
+		engine.apiPrefix = fmt.Sprintf("/%s", strings.Trim(prefix, "/"))
 	}
 }
 
 // WithLogger - sets custom logger.
-func WithLogger(log logger.Logger) Option {
-	return func(engine *Engine) {
-		engine.log = logger.New(log)
-	}
-}
+// func WithLogger(log logger.Logger) Option {
+// 	return func(engine *Engine) {
+// 		engine.log = logger.New(log)
+// 	}
+// }
 
-// WithSendingErrors - sets errors channel capacity.
-func WithSendingErrors(capacity int) Option {
-	return func(engine *Engine) {
-		if engine.log == nil {
-			engine.log = logger.New(nil)
-		} else {
-			engine.log.SetChannelCapacity(capacity)
-		}
-	}
-}
+// // WithSendingErrors - sets errors channel capacity.
+// func WithSendingErrors(capacity int) Option {
+// 	return func(engine *Engine) {
+// 		if engine.log == nil {
+// 			engine.log = logger.New(nil)
+// 		} else {
+// 			engine.log.SetChannelCapacity(capacity)
+// 		}
+// 	}
+// }
 
 // ResponseAsJSON - tells server to serialize responses as JSON using object as wrapper.
 func ResponseAsJSON(object types.Responser) Option {

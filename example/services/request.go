@@ -8,6 +8,7 @@ import (
 	"github.com/KlyuchnikovV/engi/example/entity"
 	"github.com/KlyuchnikovV/engi/options"
 	"github.com/KlyuchnikovV/engi/parameter"
+	"github.com/KlyuchnikovV/engi/parameter/query"
 	"github.com/KlyuchnikovV/engi/placing"
 	"github.com/KlyuchnikovV/engi/validate"
 )
@@ -25,35 +26,31 @@ func (api *RequestAPI) Middlewares() []engi.Middleware {
 	}
 }
 
-func (api *RequestAPI) Routers() map[string]engi.RouterByPath {
-	return map[string]engi.RouterByPath{
-		"get": engi.GET(
-			api.GetByID,
-			parameter.Integer("id", placing.InQuery,
+func (api *RequestAPI) Routers() engi.Routes {
+	return engi.Routes{
+		"get": engi.GET(api.GetByID,
+			query.Integer("id",
 				options.Description("ID of request."),
 				validate.AND(validate.Greater(1), validate.Less(10)),
 			),
 		),
-		"create": engi.POST(
-			api.Create,
-			parameter.Description("Creates new request"),
+		"create": engi.POST(api.Create,
+			// parameter.Description("Creates new request"),
 			parameter.Body(new(entity.RequestBody),
 				options.Description("Body description"),
 			),
 		),
-		"create/sub-request": engi.POST(
-			api.CreateSubRequest,
+		"create/sub-request": engi.POST(api.CreateSubRequest,
 			parameter.Body([]entity.RequestBody{}),
 		),
-		"filter": engi.GET(
-			api.Filter,
-			parameter.Bool("bool", placing.InQuery),
-			parameter.Float("float", placing.InQuery, validate.NotEmpty),
-			parameter.Integer("int", placing.InQuery),
-			parameter.String("str", placing.InQuery,
+		"filter": engi.GET(api.Filter,
+			query.Bool("bool"),
+			query.Float("float", validate.NotEmpty),
+			query.Integer("int"),
+			query.String("str",
 				validate.AND(validate.NotEmpty, validate.Greater(2)),
 			),
-			parameter.Time("time", "2006-01-02 15:04", placing.InQuery,
+			query.Time("time", "2006-01-02 15:04", 
 				options.Description("Filter by time field."),
 			),
 		),
