@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/parameter/placing"
 	"github.com/KlyuchnikovV/engi/response"
 )
 
@@ -46,7 +46,7 @@ func Integer(key string, place placing.Placing, opts ...request.Option) request.
 		extract: func(p string) (interface{}, error) {
 			result, err := strconv.ParseInt(p, request.IntBase, request.BitSize)
 			if err != nil {
-				return nil, response.NewError(http.StatusBadRequest, "Parameter '%s' not of type int (got: '%s')", key, p)
+				return nil, response.AsError(http.StatusBadRequest, "Parameter '%s' not of type int (got: '%s')", key, p)
 			}
 
 			return result, err
@@ -65,7 +65,7 @@ func Float(key string, place placing.Placing, opts ...request.Option) request.Mi
 		extract: func(p string) (interface{}, error) {
 			result, err := strconv.ParseFloat(p, request.BitSize)
 			if err != nil {
-				return nil, response.NewError(http.StatusBadRequest, "Parameter '%s' not of type float (got: '%s')", key, p)
+				return nil, response.AsError(http.StatusBadRequest, "Parameter '%s' not of type float (got: '%s')", key, p)
 			}
 
 			return result, err
@@ -98,7 +98,7 @@ func Time(key, layout string, place placing.Placing, opts ...request.Option) req
 		extract: func(request string) (interface{}, error) {
 			result, err := time.Parse(layout, request)
 			if err != nil {
-				return nil, response.NewError(http.StatusBadRequest,
+				return nil, response.AsError(http.StatusBadRequest,
 					"could not parse '%s' request to datetime using '%s' layout", key, layout,
 				)
 			}
@@ -108,7 +108,7 @@ func Time(key, layout string, place placing.Placing, opts ...request.Option) req
 	}
 }
 
-// func Description(desc string) 
+// func Description(desc string)
 
 // func Description(desc string) request.Middleware {
 // 	return func(request *request.Request, _ http.ResponseWriter) error {

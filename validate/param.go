@@ -34,7 +34,7 @@ func NotEmpty(p *request.Parameter) error {
 		return nil
 	}
 
-	return response.NewError(http.StatusBadRequest,
+	return response.AsError(http.StatusBadRequest,
 		"'%s' shouldn't be empty", p.Name,
 	)
 }
@@ -63,7 +63,7 @@ func Greater(than float64) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' should be greater than %f", p.Name, than,
 		)
 	}
@@ -93,7 +93,7 @@ func Less(than float64) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' should be less than %f", p.Name, than,
 		)
 	}
@@ -120,7 +120,7 @@ func OR(opts ...request.Option) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, strings.Join(errs, " and "),
 		)
 	}
@@ -141,7 +141,7 @@ func AND(opts ...request.Option) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, err,
 		)
 	}

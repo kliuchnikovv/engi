@@ -5,10 +5,9 @@ import (
 
 	"github.com/KlyuchnikovV/engi"
 	"github.com/KlyuchnikovV/engi/example/entity"
-	"github.com/KlyuchnikovV/engi/options"
 	"github.com/KlyuchnikovV/engi/parameter"
 	"github.com/KlyuchnikovV/engi/parameter/path"
-	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/parameter/placing"
 	"github.com/KlyuchnikovV/engi/validate"
 )
 
@@ -28,16 +27,11 @@ func (api *NotesAPI) Middlewares() []engi.Middleware {
 func (api *NotesAPI) Routers() engi.Routes {
 	return engi.Routes{
 		"create": engi.POST(api.Create,
-			// parameter.Description("creates new note"),
 			parameter.Body(new(entity.NotesRequest)),
 		),
 		"get/{id}": engi.GET(api.GetByID,
-			path.Integer("id", // TODO: validate and panic if in path parameter not mentioned in string
-				options.Description("ID of request."), // TODO: parameter.Description?
-				validate.AND(
-					validate.Greater(1),
-					validate.Less(10),
-				),
+			path.Integer("id",
+				validate.AND(validate.Greater(1), validate.Less(10)),
 			),
 		),
 		"{object}/{id}": engi.GET(api.GetByIDFromPath,

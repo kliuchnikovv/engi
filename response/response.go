@@ -6,17 +6,6 @@ import (
 	"fmt"
 )
 
-// type (
-// 	Marshaler   func(interface{}) ([]byte, error)
-// 	Unmarshaler func([]byte, interface{}) error
-// 	Responser   interface {
-// 		// SetPayload - sets response payload into object.
-// 		SetPayload(interface{})
-// 		// SetError - sets error response into object.
-// 		SetError(error)
-// 	}
-// )
-
 // AsIs - returns payload without any wrapping (even errors).
 type AsIs struct {
 	XMLName  xml.Name    `xml:"response" json:"-"`
@@ -59,7 +48,7 @@ func (a AsObject) Error() string {
 	return a.ErrorString
 }
 
-func NewError(code int, format string, args ...interface{}) AsObject {
+func AsError(code int, format string, args ...interface{}) AsObject {
 	return AsObject{
 		Code:        code,
 		ErrorString: fmt.Sprintf(format, args...),

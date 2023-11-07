@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/parameter/placing"
 )
 
 const (

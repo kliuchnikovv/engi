@@ -6,10 +6,9 @@ import (
 
 	"github.com/KlyuchnikovV/engi"
 	"github.com/KlyuchnikovV/engi/example/entity"
-	"github.com/KlyuchnikovV/engi/options"
 	"github.com/KlyuchnikovV/engi/parameter"
+	"github.com/KlyuchnikovV/engi/parameter/placing"
 	"github.com/KlyuchnikovV/engi/parameter/query"
-	"github.com/KlyuchnikovV/engi/placing"
 	"github.com/KlyuchnikovV/engi/validate"
 )
 
@@ -30,15 +29,11 @@ func (api *RequestAPI) Routers() engi.Routes {
 	return engi.Routes{
 		"get": engi.GET(api.GetByID,
 			query.Integer("id",
-				options.Description("ID of request."),
 				validate.AND(validate.Greater(1), validate.Less(10)),
 			),
 		),
 		"create": engi.POST(api.Create,
-			// parameter.Description("Creates new request"),
-			parameter.Body(new(entity.RequestBody),
-				options.Description("Body description"),
-			),
+			parameter.Body(new(entity.RequestBody)),
 		),
 		"create/sub-request": engi.POST(api.CreateSubRequest,
 			parameter.Body([]entity.RequestBody{}),
@@ -50,9 +45,7 @@ func (api *RequestAPI) Routers() engi.Routes {
 			query.String("str",
 				validate.AND(validate.NotEmpty, validate.Greater(2)),
 			),
-			query.Time("time", "2006-01-02 15:04", 
-				options.Description("Filter by time field."),
-			),
+			query.Time("time", "2006-01-02 15:04"),
 		),
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/placing"
+	"github.com/KlyuchnikovV/engi/parameter/placing"
 	"github.com/KlyuchnikovV/engi/response"
 )
 
@@ -23,7 +23,7 @@ func ExtractParam(
 ) error {
 	var param = request.GetParameter(key, paramPlacing)
 	if len(param) == 0 {
-		return response.NewError(http.StatusBadRequest, "parameter '%s' not found", key)
+		return response.AsError(http.StatusBadRequest, "parameter '%s' not found", key)
 	}
 
 	result, err := convert(param)
@@ -63,7 +63,7 @@ func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interf
 		}
 
 		if len(request.body.raw) == 0 {
-			return response.NewError(http.StatusInternalServerError, "no body found after reading")
+			return response.AsError(http.StatusInternalServerError, "no body found after reading")
 		}
 	}
 
@@ -95,7 +95,7 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 		unmarshal = func(b []byte, i interface{}) error {
 			typed, ok := i.(*string)
 			if !ok {
-				return response.NewError(http.StatusInternalServerError, "pointer must be of type '*string'")
+				return response.AsError(http.StatusInternalServerError, "pointer must be of type '*string'")
 			}
 
 			*typed = string(b)
@@ -103,12 +103,12 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 			return nil
 		}
 	default:
-		return nil, response.NewError(http.StatusBadRequest, "content-type not supported: %s", contentType)
+		return nil, response.AsError(http.StatusBadRequest, "content-type not supported: %s", contentType)
 	}
 
 	return func(bytes []byte, pointer interface{}) error {
 		if err := unmarshal(bytes, pointer); err != nil {
-			return response.NewError(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
+			return response.AsError(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
 		}
 
 		request.body.wasRequested = true
@@ -123,7 +123,7 @@ func readBody(request *Request) error {
 
 	bytes, err := io.ReadAll(request.request.Body)
 	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
-		return response.NewError(http.StatusInternalServerError, "reading body failed: %s", err.Error())
+		return response.AsError(http.StatusInternalServerError, "reading body failed: %s", err.Error())
 	}
 
 	if len(bytes) != 0 {
@@ -131,7 +131,7 @@ func readBody(request *Request) error {
 	}
 
 	if len(request.body.raw) == 0 {
-		return response.NewError(http.StatusBadRequest, "no required body provided")
+		return response.AsError(http.StatusBadRequest, "no required body provided")
 	}
 
 	return err

@@ -85,10 +85,10 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 			}
 		}
 
-		// e.services[i].registerRoutes()
-
 		for path, register := range srv.Routers() {
-			register(e.services[i], strings.Trim(path, "/"))
+			if err := register(e.services[i], strings.Trim(path, "/")); err != nil {
+				return fmt.Errorf("%w, engine: %s", err, strings.Trim(e.apiPrefix, "/"))
+			}
 		}
 
 		mux.HandleFunc(servicePath, func(w http.ResponseWriter, r *http.Request) {

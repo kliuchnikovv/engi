@@ -57,7 +57,7 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 		}
 
 		if !contains(c.allowedHeaders, canonicalHeader) {
-			return response.NewError(http.StatusForbidden, "")
+			return response.AsError(http.StatusForbidden, "")
 		}
 
 		allowedHeaders = append(allowedHeaders, canonicalHeader)
@@ -68,12 +68,12 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 	}
 
 	if _, ok := r.Header[corsRequestMethodHeader]; !ok {
-		return response.NewError(http.StatusBadRequest, "CORS-Method header not found")
+		return response.AsError(http.StatusBadRequest, "CORS-Method header not found")
 	}
 
 	method := r.Header.Get(corsRequestMethodHeader)
 	if !contains(c.allowedMethods, method) {
-		return response.NewError(http.StatusMethodNotAllowed, "CORS-Method header not found")
+		return response.AsError(http.StatusMethodNotAllowed, "CORS-Method header not found")
 	}
 
 	return response.AsObject{Code: 200}
