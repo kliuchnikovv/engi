@@ -67,11 +67,11 @@ func (resp *Response) Object(code int, payload interface{}) error {
 		resp.writer.Header().Add("Content-Type", contentType)
 	}
 
+	resp.writer.WriteHeader(code)
+
 	if _, err := resp.writer.Write(bytes); err != nil {
 		return err
 	}
-
-	resp.writer.WriteHeader(code)
 
 	return nil
 }
