@@ -111,23 +111,3 @@ func Time(key, layout string, place placing.Placing, opts ...request.Option) req
 		},
 	}
 }
-
-// func Description(desc string)
-
-// func Description(desc string) request.Middleware {
-// 	return func(request *request.Request, _ http.ResponseWriter) error {
-// 		request.Description = desc
-// 		return nil
-// 	}
-// }
-
-// func Header(key string) request.Middleware {
-// 	return func(request *request.Request, _ http.ResponseWriter) error {
-// 		header, ok := request.GetRequest().Header[key]
-// 		if !ok || len(header) == 0 {
-// 			return fmt.Errorf("no '%s' header found", key)
-// 		}
-
-// 		return nil
-// 	}
-// }

@@ -9,23 +9,10 @@ import (
 )
 
 type (
-	Request request.Requester
-
+	Request  request.Requester
 	Response response.Responser
+	Route    func(ctx context.Context, request Request, response Response) error
 )
-
-// type Context interface {
-// 	// Basic go context
-
-// 	context.Context
-
-// 	// Request.
-
-// 	// Responses.
-
-// }
-
-type Route func(ctx context.Context, request Request, response Response) error
 
 // GET - implements GET api method call.
 func GET(route Route, middlewares ...request.Middleware) RouteByPath {
