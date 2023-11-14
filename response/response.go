@@ -8,9 +8,9 @@ import (
 
 // AsIs - returns payload without any wrapping (even errors).
 type AsIs struct {
-	XMLName  xml.Name    `xml:"response" json:"-"`
-	Code     int         `xml:"-" json:"-"`
-	Response interface{} `xml:",chardata" json:"response,omitempty"`
+	XMLName  xml.Name    `json:"-"                  xml:"response"`
+	Code     int         `json:"-"                  xml:"-"`
+	Response interface{} `json:"response,omitempty" xml:",chardata"`
 }
 
 // SetPayload - sets response payload into object.
@@ -28,10 +28,10 @@ func (obj *AsIs) MarshalJSON() ([]byte, error) {
 }
 
 type AsObject struct {
-	XMLName     xml.Name    `json:"-" xml:"response"`
-	Code        int         `json:"-" xml:"-"`
+	XMLName     xml.Name    `json:"-"                xml:"response"`
+	Code        int         `json:"-"                xml:"-"`
 	Result      interface{} `json:"result,omitempty" xml:"result,omitempty"`
-	ErrorString string      `json:"error,omitempty" xml:"error,omitempty"`
+	ErrorString string      `json:"error,omitempty"  xml:"error,omitempty"`
 }
 
 // SetPayload - sets response payload into object.
@@ -48,8 +48,8 @@ func (a AsObject) Error() string {
 	return a.ErrorString
 }
 
-func AsError(code int, format string, args ...interface{}) AsObject {
-	return AsObject{
+func AsError(code int, format string, args ...interface{}) *AsObject {
+	return &AsObject{
 		Code:        code,
 		ErrorString: fmt.Sprintf(format, args...),
 	}

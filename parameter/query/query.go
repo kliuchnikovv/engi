@@ -16,8 +16,12 @@ type queryParameter struct {
 	extract func(string) (interface{}, error)
 }
 
-func (p *queryParameter) Handle(r *request.Request, w http.ResponseWriter) error {
-	return request.ExtractParam(p.key, placing.InQuery, r, p.options, p.extract)
+func (p *queryParameter) Handle(r *request.Request, _ http.ResponseWriter) *response.AsObject {
+	if err := request.ExtractParam(p.key, placing.InQuery, r, p.options, p.extract); err != nil {
+		return response.AsError(http.StatusBadRequest, err.Error())
+	}
+
+	return nil
 }
 
 // Bool - mandatory boolean Parameter from request by 'key'.

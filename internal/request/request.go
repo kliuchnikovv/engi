@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KlyuchnikovV/engi/parameter/placing"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 const (
@@ -18,10 +19,44 @@ const (
 type (
 	Option     func(*Parameter) error
 	Middleware interface {
-		Handle(*Request, http.ResponseWriter) error
+		Handle(r *Request, w http.ResponseWriter) *response.AsObject
 	}
 	ParamsValidator interface {
-		Validate(string) error
+		Validate(param string) error
+	}
+
+	Requester interface {
+		// Headers - returns request headers.
+		Headers() map[string][]string
+		// All - returns all parsed parameters.
+		All() map[placing.Placing]map[string]string
+		// GetParameter - returns parameter value from defined place.
+		GetParameter(value string, place placing.Placing) string
+		// GetRequest - return http.Request object associated with request.
+		GetRequest() *http.Request
+		// Body - returns request body.
+		// Body must be requested by 'api.Body(pointer)' or 'api.CustomBody(unmarshaler, pointer)'.
+		Body() interface{}
+		// Bool - returns boolean parameter.
+		// Mandatory parameter should be requested by 'api.Bool'.
+		// Otherwise, parameter will be obtained by key and its value will be checked for truth.
+		Bool(value string, place placing.Placing) bool
+		// Integer - returns integer parameter.
+		// Mandatory parameter should be requested by 'api.Integer'.
+		// Otherwise, parameter will be obtained by key and its value will be converted. to int64.
+		Integer(value string, place placing.Placing) int64
+		// Float - returns floating point number parameter.
+		// Mandatory parameter should be requested by 'api.Float'.
+		// Otherwise, parameter will be obtained by key and its value will be converted to float64.
+		Float(value string, place placing.Placing) float64
+		// String - returns String parameter.
+		// Mandatory parameter should be requested by 'api.String'.
+		// Otherwise, parameter will be obtained by key.
+		String(value string, place placing.Placing) string
+		// Time - returns date-time parameter.
+		// Mandatory parameter should be requested by 'api.Time'.
+		// Otherwise, parameter will be obtained by key and its value will be converted to time using 'layout'.
+		Time(key string, layout string, paramPlacing placing.Placing) time.Time
 	}
 )
 

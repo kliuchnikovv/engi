@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -50,41 +51,57 @@ func (api *RequestAPI) Routers() engi.Routes {
 	}
 }
 
-func (api *RequestAPI) Create(ctx engi.Context) error {
-	if body := ctx.Body(); body != nil {
-		return ctx.OK(body)
+func (api *RequestAPI) Create(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
+	if body := request.Body(); body != nil {
+		return response.OK(body)
 	}
 
-	return ctx.Created()
+	return response.Created()
 }
 
-func (api *RequestAPI) CreateSubRequest(ctx engi.Context) error {
-	return ctx.Object(http.StatusCreated,
+func (api *RequestAPI) CreateSubRequest(
+	_ context.Context,
+	_ engi.Request,
+	response engi.Response,
+) error {
+	return response.Object(http.StatusCreated,
 		fmt.Sprintf("sub request created with body %#v", []entity.RequestBody{}),
 	)
 }
 
-func (api *RequestAPI) GetByID(ctx engi.Context) error {
-	var id = ctx.Integer("id", placing.InQuery)
+func (api *RequestAPI) GetByID(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
+	var id = request.Integer("id", placing.InQuery)
 
 	// Do something with id (we will check it)
 	if id < 0 {
-		return ctx.BadRequest("id can't be negative (got: %d)", id)
+		return response.BadRequest("id can't be negative (got: %d)", id)
 	}
 
-	return ctx.OK(fmt.Sprintf("got id: '%d'", id))
+	return response.OK(fmt.Sprintf("got id: '%d'", id))
 }
 
-func (api *RequestAPI) Filter(ctx engi.Context) error {
+func (api *RequestAPI) Filter(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
 	var (
-		i     = ctx.Integer("int", placing.InQuery)
-		str   = ctx.String("str", placing.InQuery)
-		t     = ctx.Time("time", "2006-01-02 15:04", placing.InQuery)
-		b     = ctx.Bool("bool", placing.InQuery)
-		float = ctx.Float("float", placing.InQuery)
+		i     = request.Integer("int", placing.InQuery)
+		str   = request.String("str", placing.InQuery)
+		t     = request.Time("time", "2006-01-02 15:04", placing.InQuery)
+		b     = request.Bool("bool", placing.InQuery)
+		float = request.Float("float", placing.InQuery)
 	)
 
-	return ctx.OK(fmt.Sprintf(
+	return response.OK(fmt.Sprintf(
 		"filtered by id: '%d' and field: %s, time: %s, isAssignable: %t and float: %f",
 		i, str, t.Format("15:04 02/01/2006"), b, float,
 	))

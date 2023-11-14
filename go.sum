@@ -1,5 +1,3 @@
-github.com/KlyuchnikovV/logist v0.0.0-20231107120803-ef75293ab769 h1:G8dXA/TSskVMjI3xNm2IYDJt4OApo8H6y0ZnJduxGzk=
-github.com/KlyuchnikovV/logist v0.0.0-20231107120803-ef75293ab769/go.mod h1:x/OG2t/dN/hyTOKogB3ZCVOPuebetzDYZX9G1qeVuoI=
 github.com/KlyuchnikovV/webapi v0.0.0-20230919160121-fb1cdefe6917 h1:VN9foTrcoAi8wS2TFn1VkJK/aIkb33jKyipZ608cZ5g=
 github.com/KlyuchnikovV/webapi v0.0.0-20230919160121-fb1cdefe6917/go.mod h1:riUn2Q6+l/SWM6dsfjbiKCHHaxl3n/PLDaV4xkOitpI=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

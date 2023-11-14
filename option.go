@@ -2,6 +2,7 @@ package engi
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -38,22 +39,11 @@ func WithPrefix(prefix string) Option {
 }
 
 // WithLogger - sets custom logger.
-// func WithLogger(log logger.Logger) Option {
-// 	return func(engine *Engine) {
-// 		engine.log = logger.New(log)
-// 	}
-// }
-
-// // WithSendingErrors - sets errors channel capacity.
-// func WithSendingErrors(capacity int) Option {
-// 	return func(engine *Engine) {
-// 		if engine.log == nil {
-// 			engine.log = logger.New(nil)
-// 		} else {
-// 			engine.log.SetChannelCapacity(capacity)
-// 		}
-// 	}
-// }
+func WithLogger(handler slog.Handler) Option {
+	return func(engine *Engine) {
+		engine.logger = slog.New(handler)
+	}
+}
 
 // ResponseAsJSON - tells server to serialize responses as JSON using object as wrapper.
 func ResponseAsJSON(object types.Responser) Option {

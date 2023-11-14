@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/KlyuchnikovV/engi"
@@ -41,39 +42,51 @@ func (api *NotesAPI) Routers() engi.Routes {
 	}
 }
 
-func (api *NotesAPI) Create(ctx engi.Context) error {
-	if body := ctx.Body(); body != nil {
-		return ctx.OK(body)
+func (api *NotesAPI) Create(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
+	if body := request.Body(); body != nil {
+		return response.OK(body)
 	}
 
-	return ctx.Created()
+	return response.Created()
 }
 
-func (api *NotesAPI) GetByID(ctx engi.Context) error {
-	var id = ctx.Integer("id", placing.InPath)
+func (api *NotesAPI) GetByID(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
+	var id = request.Integer("id", placing.InPath)
 
 	// Do something with id (we will check it)
 	if id < 0 {
-		return ctx.BadRequest("id can't be negative (got: %d)", id)
+		return response.BadRequest("id can't be negative (got: %d)", id)
 	}
 
-	return ctx.OK(struct {
-		Message string `json:"message" description:"Response message"`
+	return response.OK(struct {
+		Message string `description:"Response message" json:"message"`
 	}{
 		Message: fmt.Sprintf("got id: '%d'", id),
 	})
 }
 
-func (api *NotesAPI) GetByIDFromPath(ctx engi.Context) error {
+func (api *NotesAPI) GetByIDFromPath(
+	_ context.Context,
+	request engi.Request,
+	response engi.Response,
+) error {
 	var (
-		id     = ctx.Integer("id", placing.InPath)
-		object = ctx.String("object", placing.InPath)
+		id     = request.Integer("id", placing.InPath)
+		object = request.String("object", placing.InPath)
 	)
 
 	// Do something with id (we will check it)
 	if id < 0 {
-		return ctx.BadRequest("id can't be negative (got: %d)", id)
+		return response.BadRequest("id can't be negative (got: %d)", id)
 	}
 
-	return ctx.OK(fmt.Sprintf("got id for object '%s': '%d'", object, id))
+	return response.OK(fmt.Sprintf("got id for object '%s': '%d'", object, id))
 }

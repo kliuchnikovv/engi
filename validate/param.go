@@ -108,12 +108,14 @@ func OR(opts ...request.Option) request.Option {
 		)
 
 		for _, option := range opts {
-			if err := option(p); err == nil {
-				passed = true
-				break
-			} else {
+			if err := option(p); err != nil {
 				errs = append(errs, err.Error())
+				continue
 			}
+
+			passed = true
+
+			break
 		}
 
 		if passed {

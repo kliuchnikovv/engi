@@ -17,8 +17,12 @@ type parameter struct {
 	extract func(string) (interface{}, error)
 }
 
-func (p *parameter) Handle(r *request.Request, w http.ResponseWriter) error {
-	return request.ExtractParam(p.key, p.place, r, p.options, p.extract)
+func (p *parameter) Handle(r *request.Request, _ http.ResponseWriter) *response.AsObject {
+	if err := request.ExtractParam(p.key, p.place, r, p.options, p.extract); err != nil {
+		return response.AsError(http.StatusBadRequest, err.Error())
+	}
+
+	return nil
 }
 
 // Bool - mandatory boolean Parameter from request by 'key'.

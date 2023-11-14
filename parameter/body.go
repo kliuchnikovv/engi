@@ -5,6 +5,7 @@ import (
 
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 type body struct {
@@ -13,13 +14,17 @@ type body struct {
 	options   []request.Option
 }
 
-func (p *body) Handle(r *request.Request, w http.ResponseWriter) error {
+func (p *body) Handle(r *request.Request, _ http.ResponseWriter) *response.AsObject {
 	unmarshal, err := p.unmarshal(r)
 	if err != nil {
-		return err
+		return response.AsError(http.StatusBadRequest, err.Error())
 	}
 
-	return request.ExtractBody(r, unmarshal, p.pointer, p.options)
+	if err := request.ExtractBody(r, unmarshal, p.pointer, p.options); err != nil {
+		return response.AsError(http.StatusBadRequest, err.Error())
+	}
+
+	return nil
 }
 
 // Body - takes pointer to structure and saves casted request body into context and pointer.
@@ -27,8 +32,8 @@ func (p *body) Handle(r *request.Request, w http.ResponseWriter) error {
 // Result can be retrieved from context using 'context.QueryParams.Body'.
 func Body(pointer interface{}, opts ...request.Option) request.Middleware {
 	return &body{
-		pointer: pointer,
-		options: opts,
+		pointer:   pointer,
+		options:   opts,
 		unmarshal: request.GetUnmarshaler,
 	}
 }

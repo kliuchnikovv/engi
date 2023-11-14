@@ -14,9 +14,9 @@ type (
 	}
 	Responser interface {
 		// SetPayload - sets response payload into object.
-		SetPayload(interface{})
+		SetPayload(payload interface{})
 		// SetError - sets error response into object.
-		SetError(error)
+		SetError(err error)
 	}
 )
 

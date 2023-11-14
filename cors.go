@@ -1,7 +1,6 @@
 package engi
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,7 +27,7 @@ type cors struct {
 	allowedOrigins []string
 }
 
-func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) error {
+func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) *response.AsObject {
 	var (
 		r                  = request.GetRequest()
 		origin             = r.Header.Get(corsOriginHeader)
@@ -36,7 +35,7 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 	)
 
 	if !contains(c.allowedOrigins, origin) && !contains(c.allowedOrigins, corsOriginMatchAll) {
-		return fmt.Errorf("origin '%s' is not allowed", origin)
+		return response.AsError(http.StatusForbidden, "origin '%s' is not allowed", origin)
 	}
 
 	writer.Header().Set(corsAllowOriginHeader, origin)
@@ -76,7 +75,7 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 		return response.AsError(http.StatusMethodNotAllowed, "CORS-Method header not found")
 	}
 
-	return response.AsObject{Code: 200}
+	return &response.AsObject{Code: 200}
 }
 
 func contains(slice []string, item string) bool {

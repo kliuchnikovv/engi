@@ -2,14 +2,14 @@ package engi
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/KlyuchnikovV/engi/internal/types"
 	"github.com/KlyuchnikovV/engi/response"
-	"github.com/KlyuchnikovV/logist"
-	"github.com/KlyuchnikovV/logist/fields"
 )
 
 // TODO: add checking length of request from comments about field length
@@ -38,7 +38,7 @@ type Engine struct {
 
 	services []*Service
 
-	logger *logist.Logist
+	logger *slog.Logger
 }
 
 func New(address string, configs ...Option) *Engine {
@@ -48,9 +48,9 @@ func New(address string, configs ...Option) *Engine {
 
 	var engine = &Engine{
 		apiPrefix:         defaultPrefix,
-		logger:            logist.Simple(),
 		responseObject:    new(response.AsIs),
 		responseMarshaler: *types.NewJSONMarshaler(),
+		logger:            slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		server: &http.Server{
 			Addr:              address,
 			ReadTimeout:       defaultTimeout,
@@ -78,11 +78,8 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 
 		e.services[i] = NewService(e, srv, servicePath)
 
-		//  TODO: review in more readable form
-		if middlewares, ok := srv.(MiddlewaresAPI); ok {
-			for _, middleware := range middlewares.Middlewares() {
-				middleware(e.services[i])
-			}
+		for _, middleware := range e.services[i].Middlewares() {
+			middleware(e.services[i])
 		}
 
 		for path, register := range srv.Routers() {
@@ -91,10 +88,7 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 			}
 		}
 
-		mux.HandleFunc(servicePath, func(w http.ResponseWriter, r *http.Request) {
-			uri, _ := strings.CutPrefix(r.URL.Path, e.apiPrefix)
-			e.services[i].Serve(uri, r, w)
-		})
+		mux.HandleFunc(servicePath, e.handle(i))
 	}
 
 	e.server.Handler = mux
@@ -107,8 +101,15 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 //
 // Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
 func (e *Engine) Start() error {
-	e.logger.Info("Starting engi", fields.String("address", e.server.Addr))
+	e.logger.Info("Starting engi", slog.String("address", e.server.Addr))
 	e.logger.Info("engi started...")
 
 	return e.server.ListenAndServe()
+}
+
+func (e *Engine) handle(i int) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uri, _ := strings.CutPrefix(r.URL.Path, e.apiPrefix)
+		e.services[i].Serve(uri, r, w)
+	}
 }

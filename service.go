@@ -1,17 +1,17 @@
 package engi
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/internal"
-	"github.com/KlyuchnikovV/engi/internal/context"
+	"github.com/KlyuchnikovV/engi/internal/pathfinder"
 	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/internal/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/response"
-	"github.com/KlyuchnikovV/logist"
 )
 
 type (
@@ -33,12 +33,12 @@ type (
 	Service struct {
 		middlewares []request.Middleware
 
-		handlers map[string]internal.HanlderNode
+		handlers map[string]*pathfinder.PathFinder
 
 		marshaler types.Marshaler
 		responser types.Responser
 
-		logger *logist.Logist
+		logger *slog.Logger
 
 		api  ServiceAPI
 		path string
@@ -51,7 +51,7 @@ type (
 
 func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	return &Service{
-		handlers: make(map[string]internal.HanlderNode),
+		handlers: make(map[string]*pathfinder.PathFinder),
 
 		logger:    engine.logger,
 		marshaler: engine.responseMarshaler,
@@ -62,55 +62,12 @@ func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	}
 }
 
-// Serve should write reply headers and data to the ResponseWriter
-// and then return. Returning signals that the request is finished; it
-// is not valid to use the ResponseWriter or read from the
-// Request.Body after or concurrently with the completion of the
-// Serve call.
-func (srv *Service) Serve(uri string, r *http.Request, w http.ResponseWriter) {
-	var ctx = context.NewContext(w, r, srv.marshaler, srv.responser)
-
-	for _, middleware := range srv.middlewares {
-		err := middleware.Handle(ctx.Request, ctx.Response.ResponseWriter())
-		if err == nil {
-			continue
-		}
-
-		var response response.AsObject
-
-		if ok := errors.As(err, &response); !ok {
-			//  TODO:
-		}
-
-		switch response.Code {
-		case http.StatusOK:
-			err = ctx.Response.OK(response.Code)
-		default:
-			err = ctx.Response.Error(response.Code, response.ErrorString)
-		}
-
-		if err != nil {
-			srv.logger.Error(err.Error())
-		}
-
-		return
+func (srv *Service) Middlewares() []Middleware {
+	if middlewaresAPI, ok := srv.api.(MiddlewaresAPI); ok {
+		return middlewaresAPI.Middlewares()
 	}
 
-	uri, _ = strings.CutPrefix(strings.Trim(uri, "/"), srv.api.Prefix())
-
-	if _, ok := srv.handlers[r.Method]; !ok {
-		if err := ctx.Response.NotFound("method '%s' not appliable for '%s'", r.Method, r.URL.Path); err != nil {
-			srv.logger.Error(err.Error())
-		}
-
-		return
-	}
-
-	if !srv.handlers[r.Method].Handle(uri, ctx) {
-		if err := ctx.Response.NotFound("path '%s' not found for method '%s'", r.URL.Path, r.Method); err != nil {
-			srv.logger.Error(err.Error())
-		}
-	}
+	return nil
 }
 
 // add - creates route with custom method and path.
@@ -120,7 +77,7 @@ func (srv *Service) add(
 	middlewares ...request.Middleware,
 ) error {
 	if _, ok := srv.handlers[method]; !ok {
-		srv.handlers[method] = internal.NewStringHandler("", nil)
+		srv.handlers[method] = pathfinder.NewPathFinder()
 	}
 
 	for _, middleware := range middlewares {
@@ -134,36 +91,80 @@ func (srv *Service) add(
 		}
 	}
 
-	srv.handlers[method].Add(
-		srv.handle(route, middlewares...),
-		strings.Split(path, "/")...,
-	)
+	srv.handlers[method].Add(path, srv.handle(route, middlewares...))
 
 	return nil
 }
 
-func (srv *Service) handle(route Route, middlewares ...request.Middleware) context.Handler {
-	return func(ctx *context.Context) error {
-		var response response.AsObject
+// Serve should write reply headers and data to the ResponseWriter
+// and then return. Returning signals that the request is finished; it
+// is not valid to use the ResponseWriter or read from the
+// Request.Body after or concurrently with the completion of the
+// Serve call.
+func (srv *Service) Serve(uri string, r *http.Request, w http.ResponseWriter) {
+	uri, _ = strings.CutPrefix(strings.Trim(uri, "/"), srv.api.Prefix())
 
+	if err := srv.serve(r.Context(),
+		request.New(r),
+		response.New(w, srv.marshaler, srv.responser),
+		r.Method, uri, r.URL.Path,
+	); err != nil {
+		srv.logger.Error(err.Error())
+	}
+}
+
+func (srv *Service) serve(
+	ctx context.Context,
+	request *request.Request,
+	response *response.Response,
+	method,
+	uri,
+	fullPath string,
+) error {
+	for _, middleware := range srv.middlewares {
+		var obj = middleware.Handle(request, response.ResponseWriter())
+		if obj == nil {
+			continue
+		}
+
+		switch obj.Code {
+		case http.StatusOK:
+			return response.OK(obj.Code)
+		default:
+			return response.Error(obj.Code, obj.ErrorString)
+		}
+	}
+
+	if _, ok := srv.handlers[method]; !ok {
+		return response.NotFound("method '%s' not appliable for '%s'", method, fullPath)
+	}
+
+	var err = srv.handlers[method].Handle(ctx, request, response, strings.Trim(uri, "/"))
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(err, pathfinder.ErrNotHandled) {
+		return response.NotFound("path '%s' not found for method '%s'", fullPath, method)
+	}
+
+	return response.InternalServerError(err.Error())
+}
+
+func (srv *Service) handle(
+	route Route,
+	middlewares ...request.Middleware,
+) pathfinder.Handler {
+	return func(ctx context.Context, request *request.Request, response *response.Response) error {
 		for _, middleware := range middlewares {
-			if err := middleware.Handle(ctx.Request, ctx.Response.ResponseWriter()); err != nil {
-				if ok := errors.As(err, &response); !ok {
-					//  TODO:
-				}
-
-				if err := ctx.Response.Error(response.Code, response.ErrorString); err != nil {
-					srv.logger.Error(err.Error())
-					return err
-				}
-
-				return err
+			var obj = middleware.Handle(request, response.ResponseWriter())
+			if obj != nil {
+				return response.Error(obj.Code, obj.ErrorString)
 			}
 		}
 
-		if err := route(ctx); err != nil {
-			if err := ctx.Response.InternalServerError(err.Error()); err != nil {
-				srv.logger.Error(err.Error())
+		if err := route(ctx, request, response); err != nil {
+			if err := response.InternalServerError(err.Error()); err != nil {
 				return err
 			}
 		}

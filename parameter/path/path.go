@@ -18,8 +18,12 @@ type pathParameter struct {
 	extract func(string) (interface{}, error)
 }
 
-func (p *pathParameter) Handle(r *request.Request, w http.ResponseWriter) error {
-	return request.ExtractParam(p.key, placing.InPath, r, p.options, p.extract)
+func (p *pathParameter) Handle(r *request.Request, _ http.ResponseWriter) *response.AsObject {
+	if err := request.ExtractParam(p.key, placing.InPath, r, p.options, p.extract); err != nil {
+		return response.AsError(http.StatusBadRequest, err.Error())
+	}
+
+	return nil
 }
 
 func (p *pathParameter) Validate(path string) error {
