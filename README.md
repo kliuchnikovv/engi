@@ -39,12 +39,10 @@ The handler described as a **relative** path to the handler wrapped in a request
 with additional middleware functions, including those for requesting mandatory parameters:
 
 ```golang
-func (api *RequestAPI) Routers() map[string]engi.RouterFunc {
-    return map[string]engi.RouterFunc{
-        "get": engi.GET(
-            api.GetByID,
+func (api *RequestAPI) Routers() engi.Routes {
+    return engi.Routes{
+        "get": engi.GET(api.GetByID,
             parameter.Integer("id", placing.InQuery,
-                options.Description("ID of the request."),
                 validate.AND(validate.Greater(1), validate.Less(10)),
             ),
         ),
@@ -57,7 +55,11 @@ Further, when requesting, all the necessary parameters will be checked for the p
 Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an error using predefined functions for the most used answers:
 
 ```golang
-func (api *RequestAPI) GetByID(ctx *engi.Context) error {
+func (api *RequestAPI) GetByID(
+    ctx context.Context,
+    request engi.Request,
+    response engi.Response,
+) error {
     var id = ctx.Integer("id", placing.InQuery)
 
     // Do something with id
