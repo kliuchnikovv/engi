@@ -14,6 +14,11 @@ import (
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
+var (
+	ErrMethodNotAppliable = fmt.Errorf("method not appliable for path")
+	ErrPathNotFound       = fmt.Errorf("path not found for method")
+)
+
 type (
 	ServiceAPI interface {
 		// Prefix - prefix of all paths for this service.
@@ -26,9 +31,7 @@ type (
 	MiddlewaresAPI interface {
 		Middlewares() []Middleware
 	}
-)
 
-type (
 	// Service - provides basic service methods.
 	Service struct {
 		middlewares []request.Middleware
@@ -107,7 +110,7 @@ func (srv *Service) Serve(uri string, r *http.Request, w http.ResponseWriter) {
 	if err := srv.serve(r.Context(),
 		request.New(r),
 		response.New(w, srv.marshaler, srv.responser),
-		r.Method, uri, r.URL.Path,
+		r.Method, uri,
 	); err != nil {
 		srv.logger.Error(err.Error())
 	}
@@ -118,8 +121,7 @@ func (srv *Service) serve(
 	request *request.Request,
 	response *response.Response,
 	method,
-	uri,
-	fullPath string,
+	uri string,
 ) error {
 	for _, middleware := range srv.middlewares {
 		var obj = middleware.Handle(request, response.ResponseWriter())
@@ -136,7 +138,7 @@ func (srv *Service) serve(
 	}
 
 	if _, ok := srv.handlers[method]; !ok {
-		return response.NotFound("method '%s' not appliable for '%s'", method, fullPath)
+		return response.NotFound(ErrMethodNotAppliable.Error())
 	}
 
 	var err = srv.handlers[method].Handle(ctx, request, response, strings.Trim(uri, "/"))
@@ -145,7 +147,7 @@ func (srv *Service) serve(
 	}
 
 	if errors.Is(err, pathfinder.ErrNotHandled) {
-		return response.NotFound("path '%s' not found for method '%s'", fullPath, method)
+		return response.NotFound(ErrPathNotFound.Error())
 	}
 
 	return response.InternalServerError(err.Error())

@@ -17,8 +17,6 @@ import (
 // TODO: string builder
 // TODO: benchmarks
 // TODO: tests
-// TODO: rename
-// TODO: work with context
 // TODO: logging (log url usages)
 
 const (

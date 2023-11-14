@@ -1,11 +1,10 @@
 package pathfinder
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strings"
-
-	"context"
 
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
@@ -13,7 +12,7 @@ import (
 
 var (
 	ErrNotHandled = errors.New("not handled")
-	valueRegexp   = regexp.MustCompile("^[a-zA-Z0-9]+") // TODO: extend it
+	valueRegexp   = regexp.MustCompile("^[^/]+")
 )
 
 type HandlerNodes []HanlderNode
