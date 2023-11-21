@@ -1,4 +1,4 @@
-package engi
+package cors
 
 import (
 	"net/http"
@@ -21,13 +21,13 @@ const (
 // OriginValidator takes an origin string and returns whether or not that origin is allowed.
 type OriginValidator func(string) bool
 
-type cors struct {
+type CORS struct {
 	allowedHeaders []string
 	allowedMethods []string
 	allowedOrigins []string
 }
 
-func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) *response.AsObject {
+func (c *CORS) Handle(request *request.Request, writer http.ResponseWriter) *response.AsObject {
 	var (
 		r                  = request.GetRequest()
 		origin             = r.Header.Get(corsOriginHeader)
@@ -92,22 +92,10 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-type CORSOption func(*cors)
-
-func UseCORS(opts ...CORSOption) Middleware {
-	var cors = cors{}
-
-	return func(srv *Service) {
-		for _, option := range opts {
-			option(&cors)
-		}
-
-		srv.middlewares = append(srv.middlewares, &cors)
-	}
-}
+type CORSOption func(*CORS)
 
 func AllowedHeaders(headers ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		for _, v := range headers {
 			normalizedHeader := http.CanonicalHeaderKey(strings.TrimSpace(v))
 			if normalizedHeader == "" {
@@ -122,7 +110,7 @@ func AllowedHeaders(headers ...string) CORSOption {
 }
 
 func AllowedMethods(methods ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		ch.allowedMethods = make([]string, 0, len(methods))
 
 		for _, v := range methods {
@@ -139,7 +127,7 @@ func AllowedMethods(methods ...string) CORSOption {
 }
 
 func AllowedOrigins(origins ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		for _, v := range origins {
 			if v == corsOriginMatchAll {
 				ch.allowedOrigins = []string{corsOriginMatchAll}

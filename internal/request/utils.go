@@ -20,7 +20,7 @@ func ExtractParam(
 	request *Request,
 	configs []Option,
 	convert func(string) (interface{}, error),
-) error {
+) *response.AsObject {
 	var param = request.GetParameter(key, paramPlacing)
 	if len(param) == 0 {
 		return response.AsError(http.StatusBadRequest, "parameter '%s' not found", key)
@@ -28,7 +28,7 @@ func ExtractParam(
 
 	result, err := convert(param)
 	if err != nil {
-		return err
+		return response.AsError(http.StatusBadRequest, err.Error())
 	}
 
 	if result != nil {
@@ -46,7 +46,7 @@ func ExtractParam(
 	var parameter = request.parameters[paramPlacing][key]
 	for _, config := range configs {
 		if err := config(&parameter); err != nil {
-			return err
+			return response.AsError(http.StatusBadRequest, err.Error())
 		}
 	}
 
@@ -56,10 +56,10 @@ func ExtractParam(
 	return nil
 }
 
-func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interface{}, configs []Option) error {
+func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interface{}, configs []Option) *response.AsObject {
 	if request.body.Parsed == nil {
 		if err := readBody(request); err != nil {
-			return err
+			return response.AsError(http.StatusBadRequest, err.Error())
 		}
 
 		if len(request.body.raw) == 0 {
@@ -68,12 +68,12 @@ func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interf
 	}
 
 	if err := unmarshaler([]byte(request.body.raw[0]), pointer); err != nil {
-		return err
+		return response.AsError(http.StatusBadRequest, err.Error())
 	}
 
 	for _, config := range configs {
 		if err := config(&request.body); err != nil {
-			return err
+			return response.AsError(http.StatusBadRequest, err.Error())
 		}
 	}
 

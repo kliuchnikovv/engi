@@ -1,13 +1,11 @@
 package pathfinder
 
 import (
-	"context"
 	"errors"
 	"regexp"
 	"strings"
 
 	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
 )
 
 var (
@@ -19,7 +17,7 @@ type HandlerNodes []HanlderNode
 
 type HanlderNode interface {
 	Add(handler Handler, parts ...string)
-	Handle(ctx context.Context, request *request.Request, response *response.Response, path string) error
+	GetHandler(request *request.Request, path string) Handler
 	Equal(node HanlderNode) bool
 }
 
@@ -65,36 +63,29 @@ func (s *StringHandler) Add(handler Handler, parts ...string) {
 	s.nodes = append(s.nodes, newNode)
 }
 
-func (s *StringHandler) Handle(
-	ctx context.Context,
+func (s *StringHandler) GetHandler(
 	request *request.Request,
-	response *response.Response,
 	path string,
-) error {
+) Handler {
 	path = strings.TrimLeft(path, "/")
 
 	if !strings.HasPrefix(path, s.pattern) {
-		return ErrNotHandled
+		return nil
 	}
 
 	var subPath, _ = strings.CutPrefix(path, s.pattern)
 
 	if len(subPath) == 0 {
-		return s.Handler(ctx, request, response)
+		return s.Handler
 	}
 
 	for _, node := range s.nodes {
-		err := node.Handle(ctx, request, response, subPath)
-		if err == nil {
-			return nil
-		}
-
-		if !errors.Is(err, ErrNotHandled) {
-			return err
+		if handler := node.GetHandler(request, subPath); handler != nil {
+			return handler
 		}
 	}
 
-	return ErrNotHandled
+	return nil
 }
 
 func (s *StringHandler) Equal(n HanlderNode) bool {
@@ -139,41 +130,34 @@ func (r *RegexpHandler) Add(handler Handler, parts ...string) {
 	r.nodes = append(r.nodes, newNode)
 }
 
-func (r *RegexpHandler) Handle(
-	ctx context.Context,
+func (r *RegexpHandler) GetHandler(
 	request *request.Request,
-	response *response.Response,
 	path string,
-) error {
+) Handler {
 	path = strings.TrimLeft(path, "/")
 
 	var parts = strings.Split(path, "/")
 	if len(parts) == 0 {
-		return ErrNotHandled
+		return nil
 	}
 
 	if !r.pattern.MatchString(parts[0]) {
-		return ErrNotHandled
+		return nil
 	}
 
 	request.AddInPathParameter(r.name, parts[0])
 
 	if len(parts) == 1 {
-		return r.Handler(ctx, request, response)
+		return r.Handler
 	}
 
 	for _, node := range r.nodes {
-		err := node.Handle(ctx, request, response, parts[1])
-		if err == nil {
-			return nil
-		}
-
-		if !errors.Is(err, ErrNotHandled) {
-			return err
+		if handler := node.GetHandler(request, parts[1]); handler != nil {
+			return handler
 		}
 	}
 
-	return ErrNotHandled
+	return nil
 }
 
 func (r *RegexpHandler) Equal(n HanlderNode) bool {

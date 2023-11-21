@@ -20,7 +20,6 @@ import (
 // TODO: logging (log url usages)
 
 const (
-	defaultPrefix  = "/api"
 	defaultAddress = ":8080"
 	defaultTimeout = 5 * time.Second
 )
@@ -45,10 +44,8 @@ func New(address string, configs ...Option) *Engine {
 	}
 
 	var engine = &Engine{
-		apiPrefix:         defaultPrefix,
 		responseObject:    new(response.AsIs),
 		responseMarshaler: *types.NewJSONMarshaler(),
-		logger:            slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		server: &http.Server{
 			Addr:              address,
 			ReadTimeout:       defaultTimeout,
@@ -56,6 +53,7 @@ func New(address string, configs ...Option) *Engine {
 			IdleTimeout:       defaultTimeout,
 			ReadHeaderTimeout: defaultTimeout,
 		},
+		logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 	}
 
 	for _, config := range configs {
@@ -71,22 +69,36 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 
 	var mux = http.NewServeMux()
 
-	for i, srv := range services {
-		var servicePath = fmt.Sprintf("%s/%s/", e.apiPrefix, srv.Prefix())
+	for i, service := range services {
+		var (
+			servicePath = fmt.Sprintf("%s/%s/", e.apiPrefix, service.Prefix())
+			srv         = NewService(e, service, servicePath)
+		)
 
-		e.services[i] = NewService(e, srv, servicePath)
+		e.services[i] = srv
 
-		for _, middleware := range e.services[i].Middlewares() {
-			middleware(e.services[i])
-		}
-
-		for path, register := range srv.Routers() {
+		for path, register := range service.Routers() {
 			if err := register(e.services[i], strings.Trim(path, "/")); err != nil {
 				return fmt.Errorf("%w, engine: %s", err, strings.Trim(e.apiPrefix, "/"))
 			}
+
+			e.services[i].logger.Debug("route registered",
+				slog.String("path", path),
+				slog.String("full_path", fmt.Sprintf("%s%s", servicePath, path)),
+			)
 		}
 
-		mux.HandleFunc(servicePath, e.handle(i))
+		mux.HandleFunc(servicePath, func(w http.ResponseWriter, r *http.Request) {
+			var uri, _ = strings.CutPrefix(r.URL.Path, fmt.Sprintf("%s/%s", e.apiPrefix, srv.api.Prefix()))
+
+			if err := srv.Serve(w, r, uri); err != nil {
+				srv.logger.Error(err.Error())
+			} else {
+				srv.logger.Debug("request handled")
+			}
+		})
+
+		e.logger.Debug("service registered", slog.String("service", service.Prefix()))
 	}
 
 	e.server.Handler = mux
@@ -103,11 +115,4 @@ func (e *Engine) Start() error {
 	e.logger.Info("engi started...")
 
 	return e.server.ListenAndServe()
-}
-
-func (e *Engine) handle(i int) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		uri, _ := strings.CutPrefix(r.URL.Path, e.apiPrefix)
-		e.services[i].Serve(uri, r, w)
-	}
 }

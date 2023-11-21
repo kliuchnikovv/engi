@@ -34,7 +34,11 @@ func Use(f func(*http.Server)) Option {
 // WithPrefix - sets api's prefix.
 func WithPrefix(prefix string) Option {
 	return func(engine *Engine) {
-		engine.apiPrefix = fmt.Sprintf("/%s", strings.Trim(prefix, "/"))
+		if prefix == "" {
+			engine.apiPrefix = ""
+		} else {
+			engine.apiPrefix = fmt.Sprintf("/%s", strings.Trim(prefix, "/"))
+		}
 	}
 }
 

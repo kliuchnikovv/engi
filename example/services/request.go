@@ -20,9 +20,10 @@ func (api *RequestAPI) Prefix() string {
 	return "request"
 }
 
-func (api *RequestAPI) Middlewares() []engi.Middleware {
-	return []engi.Middleware{
+func (api *RequestAPI) Middlewares() []engi.Register {
+	return []engi.Register{
 		engi.UseCORS(engi.AllowedOrigins("*")),
+		engi.UseAuthorization(engi.BasicAuth("Dave", "IsCrazy")),
 	}
 }
 

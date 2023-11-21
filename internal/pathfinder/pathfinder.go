@@ -2,7 +2,6 @@ package pathfinder
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"strings"
 
@@ -43,26 +42,19 @@ func (finder *PathFinder) Add(path string, handler Handler) {
 }
 
 func (finder *PathFinder) Handle(
-	ctx context.Context,
 	request *request.Request,
-	response *response.Response,
 	uri string,
-) error {
+) Handler {
 	handler, ok := finder.exactHandlers[uri]
 	if ok {
-		return handler(ctx, request, response)
+		return handler
 	}
 
 	for _, regexpHandler := range finder.regexpHandlers {
-		err := regexpHandler.Handle(ctx, request, response, uri)
-		if err == nil {
-			return nil
-		}
-
-		if !errors.Is(err, ErrNotHandled) {
-			return err
+		if handler := regexpHandler.GetHandler(request, uri); handler != nil {
+			return handler
 		}
 	}
 
-	return ErrNotHandled
+	return nil
 }

@@ -17,11 +17,9 @@ const (
 )
 
 type (
-	Option     func(*Parameter) error
-	Middleware interface {
-		Handle(r *Request, w http.ResponseWriter) *response.AsObject
-	}
-	ParamsValidator interface {
+	Option                func(*Parameter) error
+	Middleware            func(r *Request, w http.ResponseWriter) *response.AsObject
+	ParamsValidator       interface {
 		Validate(param string) error
 	}
 
