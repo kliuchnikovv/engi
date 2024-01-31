@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	// Marshaler func(interface{}) ([]byte, error)
+	// Marshaler func(interface{}) ([]byte, error).
 	Unmarshaler func([]byte, interface{}) error
 	Marshaler   struct {
 		ContentType func() string
@@ -14,9 +14,9 @@ type (
 	}
 	Responser interface {
 		// SetPayload - sets response payload into object.
-		SetPayload(interface{})
+		SetPayload(payload interface{})
 		// SetError - sets error response into object.
-		SetError(error)
+		SetError(err error)
 	}
 )
 

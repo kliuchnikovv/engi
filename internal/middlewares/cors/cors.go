@@ -1,12 +1,11 @@
-package webapi
+package cors
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 const (
@@ -22,13 +21,13 @@ const (
 // OriginValidator takes an origin string and returns whether or not that origin is allowed.
 type OriginValidator func(string) bool
 
-type cors struct {
+type CORS struct {
 	allowedHeaders []string
 	allowedMethods []string
 	allowedOrigins []string
 }
 
-func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) error {
+func (c *CORS) Handle(request *request.Request, writer http.ResponseWriter) *response.AsObject {
 	var (
 		r                  = request.GetRequest()
 		origin             = r.Header.Get(corsOriginHeader)
@@ -36,7 +35,7 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 	)
 
 	if !contains(c.allowedOrigins, origin) && !contains(c.allowedOrigins, corsOriginMatchAll) {
-		return fmt.Errorf("origin '%s' is not allowed", origin)
+		return response.AsError(http.StatusForbidden, "origin '%s' is not allowed", origin)
 	}
 
 	writer.Header().Set(corsAllowOriginHeader, origin)
@@ -57,7 +56,7 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 		}
 
 		if !contains(c.allowedHeaders, canonicalHeader) {
-			return response.NewError(http.StatusForbidden, "")
+			return response.AsError(http.StatusForbidden, "")
 		}
 
 		allowedHeaders = append(allowedHeaders, canonicalHeader)
@@ -68,15 +67,15 @@ func (c *cors) Handle(request *request.Request, writer http.ResponseWriter) erro
 	}
 
 	if _, ok := r.Header[corsRequestMethodHeader]; !ok {
-		return response.NewError(http.StatusBadRequest, "CORS-Method header not found")
+		return response.AsError(http.StatusBadRequest, "CORS-Method header not found")
 	}
 
 	method := r.Header.Get(corsRequestMethodHeader)
 	if !contains(c.allowedMethods, method) {
-		return response.NewError(http.StatusMethodNotAllowed, "CORS-Method header not found")
+		return response.AsError(http.StatusMethodNotAllowed, "CORS-Method header not found")
 	}
 
-	return response.AsObject{Code: 200}
+	return &response.AsObject{Code: 200}
 }
 
 func contains(slice []string, item string) bool {
@@ -93,22 +92,10 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-type CORSOption func(*cors)
-
-func UseCORS(opts ...CORSOption) Middleware {
-	var cors = cors{}
-
-	return func(srv *Service) {
-		for _, option := range opts {
-			option(&cors)
-		}
-
-		srv.middlewares = append(srv.middlewares, cors.Handle)
-	}
-}
+type CORSOption func(*CORS)
 
 func AllowedHeaders(headers ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		for _, v := range headers {
 			normalizedHeader := http.CanonicalHeaderKey(strings.TrimSpace(v))
 			if normalizedHeader == "" {
@@ -123,7 +110,7 @@ func AllowedHeaders(headers ...string) CORSOption {
 }
 
 func AllowedMethods(methods ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		ch.allowedMethods = make([]string, 0, len(methods))
 
 		for _, v := range methods {
@@ -140,7 +127,7 @@ func AllowedMethods(methods ...string) CORSOption {
 }
 
 func AllowedOrigins(origins ...string) CORSOption {
-	return func(ch *cors) {
+	return func(ch *CORS) {
 		for _, v := range origins {
 			if v == corsOriginMatchAll {
 				ch.allowedOrigins = []string{corsOriginMatchAll}

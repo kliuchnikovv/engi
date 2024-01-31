@@ -140,6 +140,8 @@ linters:
     - nlreturn # Check if there new-line before return, continue and brake statements
     - scopelint # Deprecated
     - wrapcheck # Check if all errors wrapped
+    - depguard
+    - interfacebloat
 
   # Enable presets.
   # https://golangci-lint.run/usage/linters

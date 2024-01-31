@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/webapi/internal/request"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 // NotEmpty - checks if parameter is not empty by it's type.
@@ -34,7 +34,7 @@ func NotEmpty(p *request.Parameter) error {
 		return nil
 	}
 
-	return response.NewError(http.StatusBadRequest,
+	return response.AsError(http.StatusBadRequest,
 		"'%s' shouldn't be empty", p.Name,
 	)
 }
@@ -63,7 +63,7 @@ func Greater(than float64) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' should be greater than %f", p.Name, than,
 		)
 	}
@@ -93,7 +93,7 @@ func Less(than float64) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' should be less than %f", p.Name, than,
 		)
 	}
@@ -108,19 +108,21 @@ func OR(opts ...request.Option) request.Option {
 		)
 
 		for _, option := range opts {
-			if err := option(p); err == nil {
-				passed = true
-				break
-			} else {
+			if err := option(p); err != nil {
 				errs = append(errs, err.Error())
+				continue
 			}
+
+			passed = true
+
+			break
 		}
 
 		if passed {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, strings.Join(errs, " and "),
 		)
 	}
@@ -141,7 +143,7 @@ func AND(opts ...request.Option) request.Option {
 			return nil
 		}
 
-		return response.NewError(http.StatusBadRequest,
+		return response.AsError(http.StatusBadRequest,
 			"'%s' failed check: %s", p.Name, err,
 		)
 	}

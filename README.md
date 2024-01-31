@@ -1,11 +1,11 @@
-# WebApi
+# Engi
 
-![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/KlyuchnikovV/webapi/go.yml?style=for-the-badge)
-[![Go Report Card](https://goreportcard.com/badge/github.com/KlyuchnikovV/webapi?style=for-the-badge)](https://goreportcard.com/report/github.com/KlyuchnikovV/webapi)
-![GitHub gso.mod Go version](https://img.shields.io/github/go-mod/go-version/KlyuchnikovV/webapi?style=for-the-badge)
-[![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://pkg.go.dev/github.com/KlyuchnikovV/webapi)
-[![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fwebapi&label=Views&labelColor=%23697689&countColor=%23555555)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fwebapi)
-![GitHub](https://img.shields.io/github/license/KlyuchnikovV/webapi?style=for-the-badge)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/KlyuchnikovV/engi/go.yml?style=for-the-badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/KlyuchnikovV/engi?style=for-the-badge)](https://goreportcard.com/report/github.com/KlyuchnikovV/engi)
+![GitHub gso.mod Go version](https://img.shields.io/github/go-mod/go-version/KlyuchnikovV/engi?style=for-the-badge)
+[![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://pkg.go.dev/github.com/KlyuchnikovV/engi)
+[![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fengi&label=Views&labelColor=%23697689&countColor=%23555555)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2FKlyuchnikovV%2Fengi)
+![GitHub](https://img.shields.io/github/license/KlyuchnikovV/engi?style=for-the-badge)
 
 
 ## A web framework that prioritizes developer usability.
@@ -16,7 +16,7 @@ This framework forces developer to write more structured, human-centric code.
 ### Installation
 
 ```sh
-go get github.com/KlyuchnikovV/webapi
+go get github.com/KlyuchnikovV/engi
 ```
 ### Example of usage
 
@@ -39,12 +39,10 @@ The handler described as a **relative** path to the handler wrapped in a request
 with additional middleware functions, including those for requesting mandatory parameters:
 
 ```golang
-func (api *RequestAPI) Routers() map[string]webapi.RouterFunc {
-    return map[string]webapi.RouterFunc{
-        "get": webapi.GET(
-            api.GetByID,
+func (api *RequestAPI) Routers() engi.Routes {
+    return engi.Routes{
+        "get": engi.GET(api.GetByID,
             parameter.Integer("id", placing.InQuery,
-                options.Description("ID of the request."),
                 validate.AND(validate.Greater(1), validate.Less(10)),
             ),
         ),
@@ -57,7 +55,11 @@ Further, when requesting, all the necessary parameters will be checked for the p
 Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an error using predefined functions for the most used answers:
 
 ```golang
-func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
+func (api *RequestAPI) GetByID(
+    ctx context.Context,
+    request engi.Request,
+    response engi.Response,
+) error {
     var id = ctx.Integer("id", placing.InQuery)
 
     // Do something with id
@@ -71,15 +73,15 @@ func (api *RequestAPI) GetByID(ctx *webapi.Context) error {
 }
 ```
 
-As a result, to create an application, it remains to create server with `webapi.New` passing tcp address and global (for every handler) prefix, register service and start the api.
+As a result, to create an application, it remains to create server with `engi.New` passing tcp address and global (for every handler) prefix, register service and start the api.
 
 ```golang
 func main() {
-    w := webapi.New(
+    w := engi.New(
         ":8080",
-        webapi.WithPrefix("api"),
+        engi.WithPrefix("api"),
         // Define all responses as JSON object
-        webapi.ResponseAsJSON(
+        engi.ResponseAsJSON(
             // Define all responses use Result field to wrap response and
             //    Error field to wrap errors
             new(response.AsObject),
@@ -98,4 +100,4 @@ func main() {
 }
 ```
 
-Workable example of this api you can found [here](https://github.com/KlyuchnikovV/webapi/tree/main/example)
+Workable example of this api you can found [here](https://github.com/KlyuchnikovV/engi/tree/main/example)

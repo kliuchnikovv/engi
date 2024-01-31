@@ -1,0 +1,6 @@
+github.com/KlyuchnikovV/webapi v0.0.0-20230919160121-fb1cdefe6917 h1:VN9foTrcoAi8wS2TFn1VkJK/aIkb33jKyipZ608cZ5g=
+github.com/KlyuchnikovV/webapi v0.0.0-20230919160121-fb1cdefe6917/go.mod h1:riUn2Q6+l/SWM6dsfjbiKCHHaxl3n/PLDaV4xkOitpI=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

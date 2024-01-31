@@ -1,3 +1,3 @@
-module github.com/KlyuchnikovV/webapi
+module github.com/KlyuchnikovV/engi
 
-go 1.20
+go 1.21

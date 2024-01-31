@@ -1,12 +1,13 @@
-package webapi
+package engi
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal/types"
-	"github.com/KlyuchnikovV/webapi/logger"
-	"github.com/KlyuchnikovV/webapi/response"
+	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/KlyuchnikovV/engi/response"
 )
 
 type Option func(*Engine)
@@ -33,25 +34,18 @@ func Use(f func(*http.Server)) Option {
 // WithPrefix - sets api's prefix.
 func WithPrefix(prefix string) Option {
 	return func(engine *Engine) {
-		engine.apiPrefix = strings.Trim(prefix, "/")
+		if prefix == "" {
+			engine.apiPrefix = ""
+		} else {
+			engine.apiPrefix = fmt.Sprintf("/%s", strings.Trim(prefix, "/"))
+		}
 	}
 }
 
 // WithLogger - sets custom logger.
-func WithLogger(log logger.Logger) Option {
+func WithLogger(handler slog.Handler) Option {
 	return func(engine *Engine) {
-		engine.log = logger.New(log)
-	}
-}
-
-// WithSendingErrors - sets errors channel capacity.
-func WithSendingErrors(capacity int) Option {
-	return func(engine *Engine) {
-		if engine.log == nil {
-			engine.log = logger.New(nil)
-		} else {
-			engine.log.SetChannelCapacity(capacity)
-		}
+		engine.logger = slog.New(handler)
 	}
 }
 

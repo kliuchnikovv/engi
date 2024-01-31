@@ -1,26 +1,27 @@
-package internal
+package pathfinder
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 
-	"github.com/KlyuchnikovV/webapi/internal/context"
+	"github.com/KlyuchnikovV/engi/internal/request"
 )
 
 var (
-	parameterRegexp = regexp.MustCompile("{[a-zA-Z]*}")
-	valueRegexp     = regexp.MustCompile("^[a-zA-Z0-9]+") // TODO: extend it
+	ErrNotHandled = errors.New("not handled")
+	valueRegexp   = regexp.MustCompile("^[^/]+")
 )
 
 type HandlerNodes []HanlderNode
 
 type HanlderNode interface {
-	Add(context.Handler, ...string)
-	Handle(string, *context.Context) bool
-	Equal(HanlderNode) bool
+	Add(handler Handler, parts ...string)
+	GetHandler(request *request.Request, path string) Handler
+	Equal(node HanlderNode) bool
 }
 
-func NewHandlerNode(parameter string, handler context.Handler) HanlderNode {
+func NewHandlerNode(parameter string, handler Handler) HanlderNode {
 	if parameterRegexp.MatchString(parameter) {
 		return NewRegexpHandler(
 			strings.Trim(parameter, "{}"),
@@ -34,10 +35,10 @@ func NewHandlerNode(parameter string, handler context.Handler) HanlderNode {
 type StringHandler struct {
 	pattern string
 	nodes   []HanlderNode
-	context.Handler
+	Handler
 }
 
-func NewStringHandler(pattern string, handler context.Handler) *StringHandler {
+func NewStringHandler(pattern string, handler Handler) *StringHandler {
 	return &StringHandler{
 		pattern: pattern,
 		Handler: handler,
@@ -45,7 +46,7 @@ func NewStringHandler(pattern string, handler context.Handler) *StringHandler {
 	}
 }
 
-func (s *StringHandler) Add(handler context.Handler, parts ...string) {
+func (s *StringHandler) Add(handler Handler, parts ...string) {
 	if len(parts) == 0 {
 		return
 	}
@@ -62,29 +63,29 @@ func (s *StringHandler) Add(handler context.Handler, parts ...string) {
 	s.nodes = append(s.nodes, newNode)
 }
 
-func (s *StringHandler) Handle(path string, ctx *context.Context) bool {
+func (s *StringHandler) GetHandler(
+	request *request.Request,
+	path string,
+) Handler {
 	path = strings.TrimLeft(path, "/")
 
 	if !strings.HasPrefix(path, s.pattern) {
-		return false
+		return nil
 	}
 
 	var subPath, _ = strings.CutPrefix(path, s.pattern)
 
 	if len(subPath) == 0 {
-		if err := s.Handler(ctx); err != nil {
-			return false
-		}
-		return true
+		return s.Handler
 	}
 
 	for _, node := range s.nodes {
-		if node.Handle(subPath, ctx) {
-			return true
+		if handler := node.GetHandler(request, subPath); handler != nil {
+			return handler
 		}
 	}
 
-	return false
+	return nil
 }
 
 func (s *StringHandler) Equal(n HanlderNode) bool {
@@ -100,10 +101,10 @@ type RegexpHandler struct {
 	name    string
 	pattern regexp.Regexp
 	nodes   []HanlderNode
-	context.Handler
+	Handler
 }
 
-func NewRegexpHandler(name string, handler context.Handler) *RegexpHandler {
+func NewRegexpHandler(name string, handler Handler) *RegexpHandler {
 	return &RegexpHandler{
 		name:    name,
 		pattern: *valueRegexp,
@@ -112,7 +113,7 @@ func NewRegexpHandler(name string, handler context.Handler) *RegexpHandler {
 	}
 }
 
-func (r *RegexpHandler) Add(handler context.Handler, parts ...string) {
+func (r *RegexpHandler) Add(handler Handler, parts ...string) {
 	if len(parts) == 0 {
 		return
 	}
@@ -129,34 +130,34 @@ func (r *RegexpHandler) Add(handler context.Handler, parts ...string) {
 	r.nodes = append(r.nodes, newNode)
 }
 
-func (r *RegexpHandler) Handle(path string, ctx *context.Context) bool {
+func (r *RegexpHandler) GetHandler(
+	request *request.Request,
+	path string,
+) Handler {
 	path = strings.TrimLeft(path, "/")
 
 	var parts = strings.Split(path, "/")
 	if len(parts) == 0 {
-		return false
+		return nil
 	}
 
 	if !r.pattern.MatchString(parts[0]) {
-		return false
+		return nil
 	}
 
-	ctx.Request.AddInPathParameter(r.name, parts[0])
+	request.AddInPathParameter(r.name, parts[0])
 
 	if len(parts) == 1 {
-		if err := r.Handler(ctx); err != nil {
-			return false
-		}
-		return true
+		return r.Handler
 	}
 
 	for _, node := range r.nodes {
-		if node.Handle(parts[1], ctx) {
-			return true
+		if handler := node.GetHandler(request, parts[1]); handler != nil {
+			return handler
 		}
 	}
 
-	return false
+	return nil
 }
 
 func (r *RegexpHandler) Equal(n HanlderNode) bool {
