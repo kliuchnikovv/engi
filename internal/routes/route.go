@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/api/parameter/placing"
+	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
@@ -21,8 +21,8 @@ type Route struct {
 	// cors   request.Middleware
 	auth   func(r *http.Request, w http.ResponseWriter) error
 	Body   Option
-	Params map[placing.Placing]map[string]Option //func(request *request.Request, response *response.Response) error // TODO: change type of params
-	other  []Option                              //request.Middleware
+	Params map[placing.Placing]map[string]Option
+	other  []Option
 
 	// CORS options
 	AllowedHeaders []string
@@ -105,36 +105,6 @@ func (route *Route) SetAuth(
 	route.auth = auth
 }
 
-// func (route *Route) SetBody(
-// 	body func(*request.Request, *response.Response) error,
-// ) {
-// 	route.body = body
-// }
-
-// func (route *Route) AddParam(
-// 	param func(request *request.Request, response *response.Response) error,
-// ) {
-// 	route.params = append(route.params, param)
-// }
-
-// func (route *Route) AddParameter(
-// 	key string,
-// 	place placing.Placing,
-// 	handler ParameterHandler,
-// 	options ...request.Option,
-// ) {
-// 	if _, ok := route.params[place]; !ok {
-// 		route.params[place] = make([]IParameter, 0, 1)
-// 	}
-
-// 	route.params[place] = append(route.params[place]) // IParameter{
-// 	//		key:     key,
-// 	//		place:   place,
-// 	//		handler: handler,
-// 	//		options: options,
-// 	//	})
-// }
-
 func (route *Route) newRequest(
 	r *http.Request,
 	path string,
@@ -163,9 +133,6 @@ func (route *Route) newRequest(
 
 		request.AddInPathParameter(paramName, pathPieces[i])
 	}
-
-	// "{object}/{id}" ->
-	// "abc/12"
 
 	return request
 }

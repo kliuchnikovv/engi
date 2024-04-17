@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/api/response"
+	"github.com/KlyuchnikovV/engi/definition/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 

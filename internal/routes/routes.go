@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/api/parameter/placing"
+	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
 	"github.com/KlyuchnikovV/engi/internal/types"

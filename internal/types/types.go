@@ -6,7 +6,6 @@ import (
 )
 
 type (
-	// Marshaler func(interface{}) ([]byte, error).
 	Unmarshaler func([]byte, interface{}) error
 	Marshaler   struct {
 		ContentType func() string

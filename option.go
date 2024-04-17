@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/api/response"
+	"github.com/KlyuchnikovV/engi/definition/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
@@ -42,6 +42,7 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// TODO: remake
 // WithLogger - sets custom logger.
 func WithLogger(handler slog.Handler) Option {
 	return func(engine *Engine) {

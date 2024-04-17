@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/api/parameter/placing"
-	"github.com/KlyuchnikovV/engi/api/response"
+	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
 )
 
 const (
@@ -18,7 +17,6 @@ const (
 
 type (
 	Option          func(*Parameter) error
-	Middleware      func(r *Request, w http.ResponseWriter) *response.AsObject
 	ParamsValidator interface {
 		Validate(param string) error
 	}
