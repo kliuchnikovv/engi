@@ -1,11 +1,10 @@
 package validate
 
 import (
-	"net/http"
+	"fmt"
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/internal/request"
 )
 
@@ -34,9 +33,7 @@ func NotEmpty(p *request.Parameter) error {
 		return nil
 	}
 
-	return response.AsError(http.StatusBadRequest,
-		"'%s' shouldn't be empty", p.Name,
-	)
+	return fmt.Errorf("'%s' shouldn't be empty", p.Name)
 }
 
 // Greater - checks if parameter greater than a number.
@@ -63,9 +60,7 @@ func Greater(than float64) request.Option {
 			return nil
 		}
 
-		return response.AsError(http.StatusBadRequest,
-			"'%s' should be greater than %f", p.Name, than,
-		)
+		return fmt.Errorf("'%s' should be greater than %f", p.Name, than)
 	}
 }
 
@@ -93,9 +88,7 @@ func Less(than float64) request.Option {
 			return nil
 		}
 
-		return response.AsError(http.StatusBadRequest,
-			"'%s' should be less than %f", p.Name, than,
-		)
+		return fmt.Errorf("'%s' should be less than %f", p.Name, than)
 	}
 }
 
@@ -122,9 +115,7 @@ func OR(opts ...request.Option) request.Option {
 			return nil
 		}
 
-		return response.AsError(http.StatusBadRequest,
-			"'%s' failed check: %s", p.Name, strings.Join(errs, " and "),
-		)
+		return fmt.Errorf("'%s' failed check: %s", p.Name, strings.Join(errs, " and "))
 	}
 }
 
@@ -143,8 +134,6 @@ func AND(opts ...request.Option) request.Option {
 			return nil
 		}
 
-		return response.AsError(http.StatusBadRequest,
-			"'%s' failed check: %s", p.Name, err,
-		)
+		return fmt.Errorf("'%s' failed check: %s", p.Name, err)
 	}
 }

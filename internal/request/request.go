@@ -248,22 +248,23 @@ func (r *Request) Headers() map[string][]string {
 	return r.request.Header
 }
 
-func (r *Request) UpdateParameter(
-	key string,
-	place placing.Placing,
-	value interface{},
-	options ...Option,
-) error {
-	var result = r.Parameters[place][key]
-	for _, config := range options {
-		if err := config(&result); err != nil {
-			return err
-		}
-	}
+// func (r *Request) UpdateParameter(
+// 	response *internalResponse.Response,
+// 	key string,
+// 	place placing.Placing,
+// 	value interface{},
+// 	options ...Option,
+// ) error {
+// 	var result = r.Parameters[place][key]
+// 	for _, config := range options {
+// 		if err := config(&result); err != nil {
+// 			return err
+// 		}
+// 	}
 
-	result.Name = key
-	result.Parsed = value
-	r.Parameters[place][key] = result
+// 	result.Name = key
+// 	result.Parsed = value
+// 	r.Parameters[place][key] = result
 
-	return nil
-}
+// 	return nil
+// }

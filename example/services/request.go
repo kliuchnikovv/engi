@@ -24,7 +24,7 @@ func (api *RequestAPI) Prefix() string {
 func (api *RequestAPI) Middlewares() []engi.Middleware {
 	return []engi.Middleware{
 		// cors.AllowedOrigins("*"),
-		auth.Basic("Dave", "IsCrazy"),
+		auth.Basic("Dave", "IsCrazyAboutRequest"),
 	}
 }
 

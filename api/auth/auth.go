@@ -20,51 +20,6 @@ const (
 
 var errUnathorized = errors.New("Unauthorized.")
 
-// var (
-// NoAuth = auth.NoAuth
-// BasicAuth  = auth.Basic
-// BearerAuth = auth.Bearer // TODO: remake it
-// 	APIKeyAuth = func(key, value string, place AuthKeyPlacing) request.Middleware {
-// 		return auth.APIKey(key, value, placing.Placing(place))
-// 	}
-// )
-
-// type AuthKeyPlacing placing.Placing
-
-// const (
-// 	InQuery  AuthKeyPlacing = AuthKeyPlacing(placing.InQuery)
-// 	InCookie AuthKeyPlacing = AuthKeyPlacing(placing.InCookie)
-// 	InHeader AuthKeyPlacing = AuthKeyPlacing(placing.InHeader)
-// )
-
-// func UseAuthorization(option request.Middleware) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		route.SetAuth()
-// 	}
-// }
-
-// func Basic(username, password string) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		route.SetAuth(
-// 			auth.Basic(username, password),
-// 		)
-// 	}
-// }
-
-// func Bearer(isValid func(string) bool) func(*middlewares.Middlewares) {
-// 	return func(middlewares *middlewares.Middlewares) {
-// 		middlewares.AddAuth(auth.Bearer(isValid))
-// 	}
-// }
-
-// func Bearer(isValid func(string) bool) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		route.SetAuth(
-// 			auth.Bearer(isValid),
-// 		)
-// 	}
-// }
-
 type Authorization struct {
 	name string
 
@@ -144,6 +99,7 @@ func BearerFunc(
 	}
 }
 
+// TODO: implement
 func APIKey(
 	key, value string, place placing.Placing,
 ) engi.Middleware {

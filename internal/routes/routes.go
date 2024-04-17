@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -51,7 +52,7 @@ func (routes Routes) Add(
 	responser types.Responser,
 	options ...Option,
 ) error {
-	route, err := NewRoute(handler, marshaler, responser, options...)
+	route, err := NewRoute(path, handler, marshaler, responser, options...)
 	if err != nil {
 		return err
 	}
@@ -105,14 +106,17 @@ func (routes Routes) Handle(
 ) error {
 	route, err := routes.matchEndpoint(r.Method, path)
 	if err != nil {
-		return err
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(err.Error()))
+
+		return nil
 	}
 
 	if code, err := route.cors(r, w); err != nil {
 		w.WriteHeader(code)
 		w.Write([]byte(err.Error()))
 
-		return err
+		return nil
 	}
 
 	if err := route.auth(r, w); err != nil {
@@ -122,7 +126,15 @@ func (routes Routes) Handle(
 		return nil
 	}
 
-	return route.Handle(r, w)
+	if err := route.Handle(r, w, path); err != nil {
+		// w.WriteHeader(http.StatusNotFound)
+		// w.Write([]byte(err.Error()))
+		fmt.Print(err)
+
+		return nil
+	}
+
+	return nil
 }
 
 func (routes Routes) matchEndpoint(method, path string) (*Route, error) {
@@ -142,15 +154,36 @@ func (routes Routes) matchEndpoint(method, path string) (*Route, error) {
 		}
 	}
 
+	var (
+		index   = 0
+		minArgs = math.MaxInt
+		result  = make([]regexpRoute, 0)
+	)
 	for _, route := range regexpRoutes {
-		if route.regexp.MatchString(path) {
-			return route.route, nil
+		if !route.regexp.MatchString(path) {
+			continue
+		}
+
+		result = append(result, route)
+
+		// TODO: fix description
+		// Trying to find route with less number of in path parameters
+		// to ensure that maximum of non-parametrised path pieces is used
+		//
+		//   get/{id} ==> with 'get/2' will go there
+		// {obj}/{id} ==> with 'abc/2' will go there
+		if minArgs > len(route.route.Params[placing.InPath]) {
+			minArgs = len(route.route.Params[placing.InPath])
+			index = len(result) - 1
 		}
 	}
 
-	// TODO: match variadic paths
-	// TODO: split concrete handlers and regexp
-	// TODO: when adding new regexp endpoint - check parameters for regexpes
-
-	return nil, ErrPathNotFound
+	switch len(result) {
+	case 0:
+		return nil, ErrPathNotFound
+	case 1:
+		return result[0].route, nil
+	default:
+		return result[index].route, nil
+	}
 }

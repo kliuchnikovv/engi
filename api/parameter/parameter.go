@@ -34,19 +34,21 @@ func (parameter Parameter) Regexp() string {
 
 func (parameter Parameter) Bind(route *routes.Route) error {
 	if _, ok := route.Params[parameter.placing]; !ok {
-		route.Params[parameter.placing] = make([]routes.Option, 0, 1)
+		route.Params[parameter.placing] = make(map[string]routes.Option)
 	}
 
-	route.Params[parameter.placing] = append(route.Params[parameter.placing], parameter)
+	route.Params[parameter.placing][parameter.key] = parameter
 
 	return nil
 }
 
-func (parameter Parameter) Handle(r *request.Request, response *response.Response) error {
-	return request.ExtractParam(
+func (parameter Parameter) Handle(
+	r *request.Request,
+	response *response.Response,
+) error {
+	return request.ExtractParam(r,
 		parameter.key,
 		parameter.placing,
-		r,
 		parameter.options,
 		parameter.parse,
 	)
@@ -88,7 +90,7 @@ func Integer(key string, place placing.Placing, options ...request.Option) engi.
 				return nil, err //response.BadRequest("Parameter '%s' not of type int (got: '%s')", key, p)
 			}
 
-			return result, err
+			return result, nil
 		},
 	}
 }
@@ -109,7 +111,7 @@ func Float(key string, place placing.Placing, options ...request.Option) engi.Mi
 				return nil, err //response.BadRequest("Parameter '%s' not of type float (got: '%s')", key, p)
 			}
 
-			return result, err
+			return result, nil
 		},
 	}
 }
@@ -146,7 +148,7 @@ func Time(key, layout string, place placing.Placing, options ...request.Option) 
 				return nil, err //response.BadRequest("could not parse '%s' request to datetime using '%s' layout", key, layout)
 			}
 
-			return result, err
+			return result, nil
 		},
 	}
 }

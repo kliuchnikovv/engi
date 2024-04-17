@@ -24,7 +24,7 @@ func main() {
 
 	if err := w.RegisterServices(
 		new(services.NotesAPI),
-		new(services.RequestAPI),
+		// new(services.RequestAPI),
 	); err != nil {
 		log.Fatal(err)
 	}
