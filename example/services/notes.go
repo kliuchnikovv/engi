@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/KlyuchnikovV/engi"
+	"github.com/KlyuchnikovV/engi/api/auth"
+	"github.com/KlyuchnikovV/engi/api/parameter"
+	"github.com/KlyuchnikovV/engi/api/parameter/path"
+	"github.com/KlyuchnikovV/engi/api/parameter/placing"
+	"github.com/KlyuchnikovV/engi/api/validate"
 	"github.com/KlyuchnikovV/engi/example/entity"
-	"github.com/KlyuchnikovV/engi/parameter"
-	"github.com/KlyuchnikovV/engi/parameter/path"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
-	"github.com/KlyuchnikovV/engi/validate"
 )
 
 // Example service.
@@ -19,10 +20,10 @@ func (api *NotesAPI) Prefix() string {
 	return "notes"
 }
 
-func (api *NotesAPI) Middlewares() []engi.Register {
-	return []engi.Register{
-		engi.UseCORS(engi.AllowedOrigins("*")),
-		engi.UseAuthorization(engi.BasicAuth("Dave", "IsCrazy")),
+func (api *NotesAPI) Middlewares() []engi.Middleware {
+	return []engi.Middleware{
+		// cors.AllowedOrigins("*"),
+		auth.Basic("Dave", "IsCrazy"),
 	}
 }
 
@@ -30,13 +31,13 @@ func (api *NotesAPI) Routers() engi.Routes {
 	return engi.Routes{
 		"create": engi.POST(api.Create,
 			parameter.Body(new(entity.NotesRequest)),
-			engi.UseAuthorization(engi.BasicAuth("Dave", "NotCrazy")),
+			auth.Basic("Dave", "NotCrazy"),
 		),
 		"get/{id}": engi.GET(api.GetByID,
 			path.Integer("id",
 				validate.AND(validate.Greater(1), validate.Less(10)),
 			),
-			engi.UseAuthorization(engi.BearerAuth(func(s string) bool { return s == "token" })),
+			auth.BearerToken("token"),
 		),
 		"{object}/{id}": engi.GET(api.GetByIDFromPath,
 			path.Integer("id"),

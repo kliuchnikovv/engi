@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 // TODO: add checking length of request from comments about field length
@@ -64,7 +64,7 @@ func New(address string, configs ...Option) *Engine {
 }
 
 // RegisterServices - registering service routes.
-func (e *Engine) RegisterServices(services ...ServiceAPI) error {
+func (e *Engine) RegisterServices(services ...ServiceDefinition) error {
 	e.services = make([]*Service, len(services))
 
 	var mux = http.NewServeMux()
@@ -78,9 +78,10 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 		e.services[i] = srv
 
 		for path, register := range service.Routers() {
-			if err := register(e.services[i], strings.Trim(path, "/")); err != nil {
-				return fmt.Errorf("%w, engine: %s", err, strings.Trim(e.apiPrefix, "/"))
-			}
+			register(
+				e.services[i],
+				strings.Trim(path, "/"),
+			)
 
 			e.services[i].logger.Debug("route registered",
 				slog.String("path", path),
@@ -88,15 +89,7 @@ func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 			)
 		}
 
-		mux.HandleFunc(servicePath, func(w http.ResponseWriter, r *http.Request) {
-			var uri, _ = strings.CutPrefix(r.URL.Path, fmt.Sprintf("%s/%s", e.apiPrefix, srv.api.Prefix()))
-
-			if err := srv.Serve(w, r, uri); err != nil {
-				srv.logger.Error(err.Error())
-			} else {
-				srv.logger.Debug("request handled")
-			}
-		})
+		mux.Handle(servicePath, e.services[i])
 
 		e.logger.Debug("service registered", slog.String("service", service.Prefix()))
 	}

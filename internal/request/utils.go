@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/KlyuchnikovV/engi/api/parameter/placing"
+	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 // ExtractParam - extracting parameter from context, calls middleware and saves to 'context.parameters[from][key]'.
@@ -20,21 +21,21 @@ func ExtractParam(
 	request *Request,
 	configs []Option,
 	convert func(string) (interface{}, error),
-) *response.AsObject {
+) error {
 	var param = request.GetParameter(key, paramPlacing)
 	if len(param) == 0 {
-		return response.AsError(http.StatusBadRequest, "parameter '%s' not found", key)
+		return fmt.Errorf("parameter '%s' not found", key)
 	}
 
 	result, err := convert(param)
 	if err != nil {
-		return response.AsError(http.StatusBadRequest, err.Error())
+		return err
 	}
 
 	if result != nil {
-		var parameter = request.parameters[paramPlacing][key]
+		var parameter = request.Parameters[paramPlacing][key]
 
-		request.parameters[paramPlacing][key] = Parameter{
+		request.Parameters[paramPlacing][key] = Parameter{
 			Name:         key,
 			Parsed:       result,
 			raw:          parameter.raw,
@@ -43,37 +44,42 @@ func ExtractParam(
 		}
 	}
 
-	var parameter = request.parameters[paramPlacing][key]
+	var parameter = request.Parameters[paramPlacing][key]
 	for _, config := range configs {
 		if err := config(&parameter); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 	}
 
 	parameter.Name = key
-	request.parameters[paramPlacing][key] = parameter
+	request.Parameters[paramPlacing][key] = parameter
 
 	return nil
 }
 
-func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interface{}, configs []Option) *response.AsObject {
+func ExtractBody(
+	request *Request,
+	unmarshaler types.Unmarshaler,
+	pointer interface{},
+	configs []Option,
+) error {
 	if request.body.Parsed == nil {
 		if err := readBody(request); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 
 		if len(request.body.raw) == 0 {
-			return response.AsError(http.StatusInternalServerError, "no body found after reading")
+			return fmt.Errorf("no body found after reading")
 		}
 	}
 
 	if err := unmarshaler([]byte(request.body.raw[0]), pointer); err != nil {
-		return response.AsError(http.StatusBadRequest, err.Error())
+		return err
 	}
 
 	for _, config := range configs {
 		if err := config(&request.body); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 	}
 

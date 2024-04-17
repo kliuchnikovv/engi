@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 // NotEmpty - checks if parameter is not empty by it's type.

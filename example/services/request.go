@@ -6,11 +6,12 @@ import (
 	"net/http"
 
 	"github.com/KlyuchnikovV/engi"
+	"github.com/KlyuchnikovV/engi/api/auth"
+	"github.com/KlyuchnikovV/engi/api/parameter"
+	"github.com/KlyuchnikovV/engi/api/parameter/placing"
+	"github.com/KlyuchnikovV/engi/api/parameter/query"
+	"github.com/KlyuchnikovV/engi/api/validate"
 	"github.com/KlyuchnikovV/engi/example/entity"
-	"github.com/KlyuchnikovV/engi/parameter"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
-	"github.com/KlyuchnikovV/engi/parameter/query"
-	"github.com/KlyuchnikovV/engi/validate"
 )
 
 // Example service.
@@ -20,10 +21,10 @@ func (api *RequestAPI) Prefix() string {
 	return "request"
 }
 
-func (api *RequestAPI) Middlewares() []engi.Register {
-	return []engi.Register{
-		engi.UseCORS(engi.AllowedOrigins("*")),
-		engi.UseAuthorization(engi.BasicAuth("Dave", "IsCrazy")),
+func (api *RequestAPI) Middlewares() []engi.Middleware {
+	return []engi.Middleware{
+		// cors.AllowedOrigins("*"),
+		auth.Basic("Dave", "IsCrazy"),
 	}
 }
 
@@ -42,12 +43,14 @@ func (api *RequestAPI) Routers() engi.Routes {
 		),
 		"filter": engi.GET(api.Filter,
 			query.Bool("bool"),
-			query.Float("float", validate.NotEmpty),
 			query.Integer("int"),
+			query.Time("time", "2006-01-02 15:04"),
+			query.Float("float",
+				validate.NotEmpty,
+			),
 			query.String("str",
 				validate.AND(validate.NotEmpty, validate.Greater(2)),
 			),
-			query.Time("time", "2006-01-02 15:04"),
 		),
 	}
 }

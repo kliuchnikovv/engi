@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 type Option func(*Engine)

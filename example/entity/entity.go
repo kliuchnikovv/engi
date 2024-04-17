@@ -1,5 +1,6 @@
 package entity
 
+// TODO: add field checks
 type NotesRequest struct {
 	Note   string `description:"Note content in Markdown" example:"# Heading level 1" json:"note"`
 	Author string `description:"Author name"              example:"John Cane"         json:"author"`

@@ -7,10 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/internal/middlewares"
-	"github.com/KlyuchnikovV/engi/internal/pathfinder"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
+	"github.com/KlyuchnikovV/engi/internal/routes"
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
@@ -20,7 +19,11 @@ var (
 )
 
 type (
-	ServiceAPI interface {
+	RouteByPath func(*Service, string)
+	Routes      map[string]RouteByPath
+	Middleware  routes.Option
+
+	ServiceDefinition interface {
 		// Prefix - prefix of all paths for this service.
 		Prefix() string
 
@@ -29,33 +32,32 @@ type (
 	}
 
 	MiddlewaresAPI interface {
-		Middlewares() []Register
+		Middlewares() []Middleware
 	}
 
 	// Service - provides basic service methods.
 	Service struct {
-		handlers map[string]*pathfinder.PathFinder
+		// handlers map[string]*pathfinder.PathFinder
+		routes routes.Routes
 
-		marshaler types.Marshaler
+		marshaler types.Marshaler // TODO: remove from here
 		responser types.Responser
 
 		logger *slog.Logger
 
-		api  ServiceAPI
+		api  ServiceDefinition
 		path string
 	}
-
-	RouteByPath func(*Service, string) error
-	Routes      map[string]RouteByPath
 )
 
-func NewService(engine *Engine, api ServiceAPI, path string) *Service {
+func NewService(engine *Engine, api ServiceDefinition, path string) *Service {
 	slog.New(engine.logger.Handler().WithAttrs([]slog.Attr{
 		slog.String("service", api.Prefix()),
 	}))
 
 	return &Service{
-		handlers: make(map[string]*pathfinder.PathFinder),
+		// handlers: make(map[string]*pathfinder.PathFinder),
+		routes: routes.New(),
 
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
@@ -69,7 +71,7 @@ func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	}
 }
 
-func (srv *Service) Middlewares() []Register {
+func (srv *Service) Middlewares() []Middleware {
 	if middlewaresAPI, ok := srv.api.(MiddlewaresAPI); ok {
 		return middlewaresAPI.Middlewares()
 	}
@@ -77,73 +79,112 @@ func (srv *Service) Middlewares() []Register {
 	return nil
 }
 
-// add - creates route with custom method and path.
-func (srv *Service) add(
-	method, path string,
-	route Route,
-	options ...Register,
-) error {
-	if _, ok := srv.handlers[method]; !ok {
-		srv.handlers[method] = pathfinder.NewPathFinder()
+func (srv *Service) addRoute(
+	method,
+	path string,
+	route routes.Handler,
+	options ...Middleware,
+) {
+	var middlewares []routes.Option
+
+	for _, option := range srv.Middlewares() {
+		middlewares = append(middlewares, option)
 	}
 
-	var middlewares = middlewares.New()
-	for _, middleware := range srv.Middlewares() {
-		middleware(middlewares)
+	for _, option := range options {
+		middlewares = append(middlewares, option)
 	}
 
-	for _, middleware := range options {
-		middleware(middlewares)
-	}
-
-	srv.handlers[method].Add(path, srv.handleEndpoint(
-		route,
-		middlewares,
-	))
-
-	return nil
+	srv.routes.Add(
+		method,
+		path,
+		func(ctx context.Context, request *request.Request, response *response.Response) error {
+			return route(ctx, request, response)
+		},
+		srv.marshaler,
+		srv.responser,
+		middlewares...,
+	)
 }
 
-func (srv *Service) Serve(
-	w http.ResponseWriter, r *http.Request, uri string,
-) error {
+// add - creates route with custom method and path.
+// func (srv *Service) add(
+// 	method, path string,
+// 	route Route,
+// 	options ...Register,
+// ) error {
+// 	if _, ok := srv.handlers[method]; !ok {
+// 		srv.handlers[method] = pathfinder.NewPathFinder()
+// 	}
+
+// 	var middlewares = middlewares.New()
+// 	for _, middleware := range srv.Middlewares() {
+// 		middleware(middlewares)
+// 	}
+
+// 	for _, middleware := range options {
+// 		middleware(middlewares)
+// 	}
+
+// 	srv.handlers[method].Add(path, srv.handleEndpoint(
+// 		route,
+// 		middlewares,
+// 	))
+
+// 	return nil
+// }
+
+// func (srv *Service) handleEndpoint(
+// 	route Route,
+// 	middlewares *middlewares.Middlewares,
+// ) pathfinder.Handler {
+// 	return func(ctx context.Context, request *request.Request, response *response.Response) error {
+// 		if err := middlewares.Handle(request, response.ResponseWriter()); err != nil {
+// 			return response.Error(err.Code, err.ErrorString)
+// 		}
+
+// 		if err := route(ctx, request, response); err != nil {
+// 			if err := response.InternalServerError(err.Error()); err != nil {
+// 				return err
+// 			}
+// 		}
+
+// 		return nil
+// 	}
+// }
+
+func (srv *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var uri, _ = strings.CutPrefix(r.URL.Path, srv.path)
+
 	srv.logger.Debug("got request",
 		slog.String("method", r.Method),
 		slog.String("path", r.URL.Path),
 	)
 
-	var (
-		request  = request.New(r)
-		response = response.New(w, srv.marshaler, srv.responser)
-	)
-
-	if _, ok := srv.handlers[r.Method]; !ok {
-		return response.NotFound(ErrMethodNotAppliable.Error())
+	if err := srv.routes.Handle(r, w, uri); err != nil {
+		panic(err)
 	}
 
-	var handler = srv.handlers[r.Method].Handle(request, strings.Trim(uri, "/"))
-	if handler == nil {
-		return response.NotFound(ErrPathNotFound.Error())
-	}
+	// if _, ok := srv.handlers[r.Method]; !ok {
+	// 	srv.logger.Error(
+	// 		response.NotFound(
+	// 			ErrMethodNotAppliable.Error(),
+	// 		).Error(),
+	// 	)
+	// }
 
-	return handler(r.Context(), request, response)
-}
+	// var handler = srv.handlers[r.Method].Handle(request, strings.Trim(uri, "/"))
+	// if handler == nil {
+	// 	srv.logger.Error(
+	// 		response.NotFound(
+	// 			ErrPathNotFound.Error(),
+	// 		).Error(),
+	// 	)
+	// }
 
-func (srv *Service) handleEndpoint(
-	route Route,
-	middlewares *middlewares.Middlewares,
-) pathfinder.Handler {
-	return func(ctx context.Context, request *request.Request, response *response.Response) error {
-		if err := middlewares.Handle(request, response.ResponseWriter()); err != nil {
-			return response.Error(err.Code, err.ErrorString)
-		}
+	// if err := handler(r.Context(), request, response); err != nil {
+	// 	srv.logger.Error(err.Error())
+	// }
 
-		if err := route(ctx, request, response); err != nil {
-			if err := response.InternalServerError(err.Error()); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
+	srv.logger.Debug("request handled")
 }

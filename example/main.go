@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/KlyuchnikovV/engi"
+	"github.com/KlyuchnikovV/engi/api/response"
 	"github.com/KlyuchnikovV/engi/example/services"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 func main() {
