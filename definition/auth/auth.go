@@ -99,33 +99,33 @@ func BearerFunc(
 	}
 }
 
-// TODO: implement
 func APIKey(
 	key, value string, place placing.Placing,
 ) engi.Middleware {
+	if place == placing.InPath {
+		panic("placing api key in path not supported")
+	}
+
 	return &Authorization{
 		name: "api key",
 		handle: func(r *http.Request, w http.ResponseWriter) error {
-			var param string
+			var parameter string
 
 			switch place {
-			case placing.InCookie:
-				// TODO:
 			case placing.InHeader:
-			case placing.InPath:
+				parameter = r.Header.Get(key)
 			case placing.InQuery:
-			default:
-				return nil // TODO:
+				parameter = strings.Join(r.URL.Query()[key], "")
+			case placing.InCookie:
+				for _, cookie := range r.Cookies() {
+					if cookie.Name == key {
+						parameter = cookie.Value
+						break
+					}
+				}
 			}
 
-			// var param = r.GetParameter(key, place)
-			if len(param) == 0 {
-				w.WriteHeader(http.StatusUnauthorized)
-
-				return errUnathorized
-			}
-
-			if value != param {
+			if value != parameter {
 				w.WriteHeader(http.StatusUnauthorized)
 
 				return errUnathorized
