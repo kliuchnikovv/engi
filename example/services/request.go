@@ -7,6 +7,7 @@ import (
 
 	"github.com/KlyuchnikovV/engi"
 	"github.com/KlyuchnikovV/engi/api/auth"
+	"github.com/KlyuchnikovV/engi/api/cors"
 	"github.com/KlyuchnikovV/engi/api/parameter"
 	"github.com/KlyuchnikovV/engi/api/parameter/placing"
 	"github.com/KlyuchnikovV/engi/api/parameter/query"
@@ -23,7 +24,7 @@ func (api *RequestAPI) Prefix() string {
 
 func (api *RequestAPI) Middlewares() []engi.Middleware {
 	return []engi.Middleware{
-		// cors.AllowedOrigins("*"),
+		cors.AllowedOrigins("*"),
 		auth.Basic("Dave", "IsCrazyAboutRequest"),
 	}
 }

@@ -3,19 +3,24 @@ package cors
 import (
 	"net/http"
 
+	"github.com/KlyuchnikovV/engi"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
 	"github.com/KlyuchnikovV/engi/internal/routes"
 )
 
 type CORS struct {
-	name string
+	allowedHeaders []string
+	allowedMethods []string
+	allowedOrigins []string
 
 	handle func(r *http.Request, w http.ResponseWriter) error
 }
 
 func (cors *CORS) Bind(route *routes.Route) error {
-	// route.SetAuth(auth.handle)
+	route.AllowedHeaders = append(route.AllowedHeaders, cors.allowedHeaders...)
+	route.AllowedMethods = append(route.AllowedMethods, cors.allowedMethods...)
+	route.AllowedOrigins = append(route.AllowedOrigins, cors.allowedOrigins...)
 
 	return nil
 }
@@ -28,20 +33,20 @@ func (cors *CORS) Docs(route *routes.Route) {
 	panic("not implemented")
 }
 
-// func AllowedHeaders(headers ...string) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		routes.AllowedHeaders(headers...)
-// 	}
-// }
+func AllowedHeaders(headers ...string) engi.Middleware {
+	return &CORS{
+		allowedHeaders: headers,
+	}
+}
 
-// func AllowedMethods(methods ...string) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		routes.AllowedMethods(methods...)
-// 	}
-// }
+func AllowedMethods(methods ...string) engi.Middleware {
+	return &CORS{
+		allowedMethods: methods,
+	}
+}
 
-// func AllowedOrigins(origins ...string) engi.Middleware {
-// 	return func(route *routes.Route) {
-// 		routes.AllowedOrigins(origins...)
-// 	}
-// }
+func AllowedOrigins(origins ...string) engi.Middleware {
+	return &CORS{
+		allowedOrigins: origins,
+	}
+}

@@ -25,9 +25,9 @@ type Route struct {
 	other  []Option                              //request.Middleware
 
 	// CORS options
-	allowedHeaders []string
-	allowedMethods []string
-	allowedOrigins []string
+	AllowedHeaders []string
+	AllowedMethods []string
+	AllowedOrigins []string
 }
 
 func NewRoute(

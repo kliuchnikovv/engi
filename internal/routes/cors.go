@@ -34,7 +34,7 @@ func (route *Route) cors(
 ) (int, error) {
 	var origin = r.Header.Get(corsOriginHeader)
 
-	if !contains(route.allowedOrigins, origin) && !contains(route.allowedOrigins, corsOriginMatchAll) {
+	if !contains(route.AllowedOrigins, origin) && !contains(route.AllowedOrigins, corsOriginMatchAll) {
 		return http.StatusForbidden, fmt.Errorf("%w: '%s'", ErrOriginNotAllowed, origin)
 	}
 
@@ -55,7 +55,7 @@ func (route *Route) cors(
 			continue
 		}
 
-		if !contains(route.allowedHeaders, canonicalHeader) {
+		if !contains(route.AllowedHeaders, canonicalHeader) {
 			return http.StatusForbidden, ErrMissingConanicalHeader
 		}
 
@@ -71,7 +71,7 @@ func (route *Route) cors(
 	}
 
 	method := r.Header.Get(corsRequestMethodHeader)
-	if !contains(route.allowedMethods, method) {
+	if !contains(route.AllowedMethods, method) {
 		return http.StatusMethodNotAllowed, ErrCORSMethodHeaderNotAllowed
 	}
 
