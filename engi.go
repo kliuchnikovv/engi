@@ -8,16 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/definition/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
 // TODO: add checking length of request from comments about field length
-// TODO: authorization
-// TODO: string builder
 // TODO: benchmarks
 // TODO: tests
 // TODO: logging (log url usages)
+// TODO: documentation
 
 const (
 	defaultAddress = ":8080"
@@ -44,8 +42,8 @@ func New(address string, configs ...Option) *Engine {
 	}
 
 	var engine = &Engine{
-		responseObject:    new(response.AsIs),
-		responseMarshaler: *types.NewJSONMarshaler(),
+		responseObject:    new(types.ResponseAsIs),
+		responseMarshaler: types.NewJSONMarshaler(),
 		server: &http.Server{
 			Addr:              address,
 			ReadTimeout:       defaultTimeout,

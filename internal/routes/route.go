@@ -15,10 +15,9 @@ type Route struct {
 	Path    string
 	handler Handler
 
-	marshaler types.Marshaler
-	responser types.Responser
+	Marshaler types.Marshaler
+	Responser types.Responser
 
-	// cors   request.Middleware
 	auth   func(r *http.Request, w http.ResponseWriter) error
 	Body   Option
 	Params map[placing.Placing]map[string]Option
@@ -40,8 +39,8 @@ func NewRoute(
 	var route = Route{
 		Path:      path,
 		handler:   handler,
-		marshaler: marshaler,
-		responser: responser,
+		Marshaler: marshaler,
+		Responser: responser,
 		auth: func(r *http.Request, w http.ResponseWriter) error {
 			return nil
 		},
@@ -65,14 +64,13 @@ func (route *Route) Handle(
 	var (
 		request  = route.newRequest(r, path)
 		response = response.New(w,
-			route.marshaler,
-			route.responser,
+			route.Marshaler,
+			route.Responser,
 		)
 	)
 
 	if route.Body != nil {
 		if err := route.Body.Handle(request, response); err != nil {
-			// return err
 			return response.BadRequest(err.Error())
 		}
 	}
@@ -87,7 +85,6 @@ func (route *Route) Handle(
 
 	for _, other := range route.other {
 		if err := other.Handle(request, response); err != nil {
-			// return err
 			return response.BadRequest(err.Error())
 		}
 	}

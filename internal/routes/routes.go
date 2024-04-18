@@ -129,7 +129,7 @@ func (routes Routes) Handle(
 	if err := route.Handle(r, w, path); err != nil {
 		// w.WriteHeader(http.StatusNotFound)
 		// w.Write([]byte(err.Error()))
-		fmt.Print(err)
+		fmt.Print(err) // TODO: logger
 
 		return nil
 	}

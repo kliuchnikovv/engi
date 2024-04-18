@@ -21,7 +21,7 @@ func WithResponse(object types.Responser) Option {
 
 // AsIsResponse - tells server to response objects without wrapping.
 func AsIsResponse(engine *Engine) {
-	engine.responseObject = new(response.AsIs)
+	engine.responseObject = new(types.ResponseAsIs)
 }
 
 // Use - sets custom configuration function for http.Server.
@@ -51,17 +51,17 @@ func WithLogger(handler slog.Handler) Option {
 }
 
 // ResponseAsJSON - tells server to serialize responses as JSON using object as wrapper.
-func ResponseAsJSON(object types.Responser) Option {
+func ResponseAsJSON(object func() response.Responser) Option {
 	return func(engine *Engine) {
-		engine.responseObject = object
-		engine.responseMarshaler = *types.NewJSONMarshaler()
+		engine.responseObject = object()
+		engine.responseMarshaler = types.NewJSONMarshaler()
 	}
 }
 
 // ResponseAsXML - tells server to serialize responses as XML using object as wrapper.
-func ResponseAsXML(object types.Responser) Option {
+func ResponseAsXML(object func() response.Responser) Option {
 	return func(engine *Engine) {
-		engine.responseObject = object
-		engine.responseMarshaler = *types.NewXMLMarshaler()
+		engine.responseObject = object()
+		engine.responseMarshaler = types.NewXMLMarshaler()
 	}
 }
