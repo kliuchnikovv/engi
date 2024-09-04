@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/KlyuchnikovV/engi/definition/response"
 	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/response"
 )
 
 type Option func(*Engine)
@@ -21,7 +21,7 @@ func WithResponse(object types.Responser) Option {
 
 // AsIsResponse - tells server to response objects without wrapping.
 func AsIsResponse(engine *Engine) {
-	engine.responseObject = new(response.AsIs)
+	engine.responseObject = new(types.ResponseAsIs)
 }
 
 // Use - sets custom configuration function for http.Server.
@@ -42,6 +42,7 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// TODO: remake
 // WithLogger - sets custom logger.
 func WithLogger(handler slog.Handler) Option {
 	return func(engine *Engine) {
@@ -50,17 +51,17 @@ func WithLogger(handler slog.Handler) Option {
 }
 
 // ResponseAsJSON - tells server to serialize responses as JSON using object as wrapper.
-func ResponseAsJSON(object types.Responser) Option {
+func ResponseAsJSON(object func() response.Responser) Option {
 	return func(engine *Engine) {
-		engine.responseObject = object
-		engine.responseMarshaler = *types.NewJSONMarshaler()
+		engine.responseObject = object()
+		engine.responseMarshaler = types.NewJSONMarshaler()
 	}
 }
 
 // ResponseAsXML - tells server to serialize responses as XML using object as wrapper.
-func ResponseAsXML(object types.Responser) Option {
+func ResponseAsXML(object func() response.Responser) Option {
 	return func(engine *Engine) {
-		engine.responseObject = object
-		engine.responseMarshaler = *types.NewXMLMarshaler()
+		engine.responseObject = object()
+		engine.responseMarshaler = types.NewXMLMarshaler()
 	}
 }
