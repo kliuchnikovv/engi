@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/KlyuchnikovV/engi/internal/middlewares"
-	"github.com/KlyuchnikovV/engi/internal/pathfinder"
 	"github.com/KlyuchnikovV/engi/internal/request"
 	"github.com/KlyuchnikovV/engi/internal/response"
+	"github.com/KlyuchnikovV/engi/internal/tree"
 	"github.com/KlyuchnikovV/engi/internal/types"
 )
 
@@ -34,7 +34,7 @@ type (
 
 	// Service - provides basic service methods.
 	Service struct {
-		handlers map[string]*pathfinder.PathFinder
+		handlers map[string]*tree.Tree[Handler]
 
 		marshaler types.Marshaler
 		responser types.Responser
@@ -47,6 +47,8 @@ type (
 
 	RouteByPath func(*Service, string) error
 	Routes      map[string]RouteByPath
+
+	Handler func(ctx context.Context, request *request.Request, response *response.Response) error
 )
 
 func NewService(engine *Engine, api ServiceAPI, path string) *Service {
@@ -55,7 +57,7 @@ func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	}))
 
 	return &Service{
-		handlers: make(map[string]*pathfinder.PathFinder),
+		handlers: make(map[string]*tree.Tree[Handler]),
 
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
@@ -84,7 +86,7 @@ func (srv *Service) add(
 	options ...Register,
 ) error {
 	if _, ok := srv.handlers[method]; !ok {
-		srv.handlers[method] = pathfinder.NewPathFinder()
+		srv.handlers[method] = tree.NewTree[Handler]()
 	}
 
 	var middlewares = middlewares.New()
@@ -121,18 +123,22 @@ func (srv *Service) Serve(
 		return response.NotFound(ErrMethodNotAppliable.Error())
 	}
 
-	var handler = srv.handlers[r.Method].Handle(request, strings.Trim(uri, "/"))
+	handler, err := srv.handlers[r.Method].Get(request, strings.Trim(uri, "/"))
+	if err != nil {
+		return response.NotFound(err.Error())
+	}
+
 	if handler == nil {
 		return response.NotFound(ErrPathNotFound.Error())
 	}
 
-	return handler(r.Context(), request, response)
+	return (*handler)(r.Context(), request, response)
 }
 
 func (srv *Service) handleEndpoint(
 	route Route,
 	middlewares *middlewares.Middlewares,
-) pathfinder.Handler {
+) Handler {
 	return func(ctx context.Context, request *request.Request, response *response.Response) error {
 		if err := middlewares.Handle(request, response.ResponseWriter()); err != nil {
 			return response.Error(err.Code, err.ErrorString)

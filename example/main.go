@@ -11,10 +11,11 @@ import (
 )
 
 func main() {
-	w := engi.New(
-		":8080",
+	w := engi.New(":8080",
 		engi.WithPrefix("api"),
-		engi.ResponseAsJSON(new(response.AsIs)),
+		engi.ResponseAsJSON(
+			new(response.AsIs),
+		),
 		engi.WithLogger(slog.NewTextHandler(os.Stdout,
 			&slog.HandlerOptions{
 				Level: slog.LevelDebug,

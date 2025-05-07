@@ -136,3 +136,25 @@ func readBody(request *Request) error {
 
 	return err
 }
+
+func SetParameters(r *Request, place placing.Placing, params map[string]string) {
+	if len(params) == 0 {
+		return
+	}
+
+	if r.parameters == nil {
+		r.parameters = make(map[placing.Placing]map[string]Parameter)
+	}
+
+	if r.parameters[place] == nil {
+		r.parameters[place] = make(map[string]Parameter)
+	}
+
+	for key, value := range params {
+		r.parameters[place][key] = Parameter{
+			Name:   key,
+			raw:    []string{value},
+			Parsed: value,
+		}
+	}
+}

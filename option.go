@@ -8,6 +8,7 @@ import (
 
 	"github.com/KlyuchnikovV/engi/internal/types"
 	"github.com/KlyuchnikovV/engi/response"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Option func(*Engine)
@@ -63,4 +64,9 @@ func ResponseAsXML(object types.Responser) Option {
 		engine.responseObject = object
 		engine.responseMarshaler = *types.NewXMLMarshaler()
 	}
+}
+
+// WithTracerProvider sets the OpenTelemetry TracerProvider.
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(e *Engine) { e.tracerProvider = tp }
 }

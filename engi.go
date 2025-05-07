@@ -1,23 +1,22 @@
 package engi
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/KlyuchnikovV/engi/internal/types"
 	"github.com/KlyuchnikovV/engi/response"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
-
-// TODO: add checking length of request from comments about field length
-// TODO: authorization
-// TODO: string builder
-// TODO: benchmarks
-// TODO: tests
-// TODO: logging (log url usages)
 
 const (
 	defaultAddress = ":8080"
@@ -26,24 +25,22 @@ const (
 
 // Engine - server provider.
 type Engine struct {
-	apiPrefix string
-
-	server *http.Server
-
+	apiPrefix         string
+	server            *http.Server
 	responseMarshaler types.Marshaler
 	responseObject    types.Responser
-
-	services []*Service
-
-	logger *slog.Logger
+	services          []*Service
+	logger            *slog.Logger
+	tracerProvider    trace.TracerProvider
 }
 
+// New initializes a new Engine with the given address and options.
 func New(address string, configs ...Option) *Engine {
 	if address == "" {
 		address = defaultAddress
 	}
 
-	var engine = &Engine{
+	engine := &Engine{
 		responseObject:    new(response.AsIs),
 		responseMarshaler: *types.NewJSONMarshaler(),
 		server: &http.Server{
@@ -53,7 +50,8 @@ func New(address string, configs ...Option) *Engine {
 			IdleTimeout:       defaultTimeout,
 			ReadHeaderTimeout: defaultTimeout,
 		},
-		logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		logger:         slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		tracerProvider: otel.GetTracerProvider(),
 	}
 
 	for _, config := range configs {
@@ -63,56 +61,70 @@ func New(address string, configs ...Option) *Engine {
 	return engine
 }
 
-// RegisterServices - registering service routes.
+// RegisterServices registers ServiceAPI implementations into the HTTP mux.
 func (e *Engine) RegisterServices(services ...ServiceAPI) error {
 	e.services = make([]*Service, len(services))
-
-	var mux = http.NewServeMux()
+	mux := http.NewServeMux()
 
 	for i, service := range services {
-		var (
-			servicePath = fmt.Sprintf("%s/%s/", e.apiPrefix, service.Prefix())
-			srv         = NewService(e, service, servicePath)
-		)
-
+		path := fmt.Sprintf("%s/%s/", e.apiPrefix, service.Prefix())
+		srv := NewService(e, service, path)
 		e.services[i] = srv
 
-		for path, register := range service.Routers() {
-			if err := register(e.services[i], strings.Trim(path, "/")); err != nil {
+		for route, register := range service.Routers() {
+			if err := register(srv, strings.Trim(route, "/")); err != nil {
 				return fmt.Errorf("%w, engine: %s", err, strings.Trim(e.apiPrefix, "/"))
 			}
-
-			e.services[i].logger.Debug("route registered",
-				slog.String("path", path),
-				slog.String("full_path", fmt.Sprintf("%s%s", servicePath, path)),
-			)
+			srv.logger.Debug("route registered", slog.String("route", route), slog.String("full", path+route))
 		}
 
-		mux.HandleFunc(servicePath, func(w http.ResponseWriter, r *http.Request) {
-			var uri, _ = strings.CutPrefix(r.URL.Path, fmt.Sprintf("%s/%s", e.apiPrefix, srv.api.Prefix()))
-
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			uri, _ := strings.CutPrefix(r.URL.Path, fmt.Sprintf("%s/%s", e.apiPrefix, srv.api.Prefix()))
 			if err := srv.Serve(w, r, uri); err != nil {
 				srv.logger.Error(err.Error())
 			} else {
 				srv.logger.Debug("request handled")
 			}
 		})
-
 		e.logger.Debug("service registered", slog.String("service", service.Prefix()))
 	}
 
-	e.server.Handler = mux
-
+	// Wrap mux with OpenTelemetry instrumentation
+	e.server.Handler = otelhttp.NewHandler(mux, fmt.Sprintf("engi-server:%s", e.apiPrefix))
 	return nil
 }
 
-// Start listens on the TCP network address srv.Addr and then calls Serve to handle requests on incoming connections.
-// Accepted connections are configured to enable TCP keep-alives.
-//
-// Start always returns a non-nil error. After Shutdown or Close, the returned error is ErrServerClosed.
+// Start runs the HTTP server and handles graceful shutdown on SIGINT/SIGTERM.
 func (e *Engine) Start() error {
 	e.logger.Info("Starting engi", slog.String("address", e.server.Addr))
-	e.logger.Info("engi started...")
 
-	return e.server.ListenAndServe()
+	// Run server in background
+	go func() {
+		if err := e.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			e.logger.Error("Server error", slog.String("error", err.Error()))
+		}
+	}()
+
+	// Listen for OS signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	e.logger.Info("Shutting down engi")
+
+	// Graceful shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := e.server.Shutdown(ctx); err != nil {
+		e.logger.Error("Graceful shutdown failed", slog.String("error", err.Error()))
+		return err
+	}
+	e.logger.Info("engi stopped gracefully")
+	return nil
+}
+
+// Shutdown allows manual graceful shutdown with a context.
+func (e *Engine) Shutdown(ctx context.Context) error {
+	e.logger.Info("Manual shutdown initiated")
+	return e.server.Shutdown(ctx)
 }

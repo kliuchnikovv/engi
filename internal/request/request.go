@@ -17,17 +17,17 @@ const (
 )
 
 type (
-	Option                func(*Parameter) error
-	Middleware            func(r *Request, w http.ResponseWriter) *response.AsObject
-	ParamsValidator       interface {
+	Option          func(*Parameter) error
+	Middleware      func(r *Request, w http.ResponseWriter) *response.AsObject
+	ParamsValidator interface {
 		Validate(param string) error
 	}
 
 	Requester interface {
 		// Headers - returns request headers.
 		Headers() map[string][]string
-		// All - returns all parsed parameters.
-		All() map[placing.Placing]map[string]string
+		// Parameters - returns all parsed parameters.
+		Parameters() map[placing.Placing]map[string]string
 		// GetParameter - returns parameter value from defined place.
 		GetParameter(value string, place placing.Placing) string
 		// GetRequest - return http.Request object associated with request.
@@ -186,7 +186,7 @@ func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Ti
 	return result
 }
 
-func (r *Request) All() map[placing.Placing]map[string]string {
+func (r *Request) Parameters() map[placing.Placing]map[string]string {
 	var parameters = make(map[placing.Placing]map[string]string)
 
 	for place, params := range r.parameters {
