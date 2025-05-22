@@ -36,6 +36,7 @@ type Engine struct {
 	tracerProvider trace.TracerProvider
 }
 
+// New initializes a new Engine with the given address and options.
 func New(address string, configs ...Option) *Engine {
 	if address == "" {
 		address = defaultAddress
