@@ -73,8 +73,3 @@ func ResponseAsXML(object func() response.Responser) Option {
 		engine.responseMarshaler = types.NewXMLMarshaler()
 	}
 }
-
-// WithTracerProvider sets the OpenTelemetry TracerProvider.
-func WithTracerProvider(tp trace.TracerProvider) Option {
-	return func(e *Engine) { e.tracerProvider = tp }
-}
