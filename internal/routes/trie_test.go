@@ -1,16 +1,16 @@
-package tree_test
+package routes_test
 
 import (
 	"testing"
 
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/tree"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/routes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTree_Get(t *testing.T) {
-	pathfinder := tree.NewTree[int]()
+	pathfinder := routes.NewTrie[int]()
 
 	// Dummy handlers
 	handlerRoot := 1
@@ -18,11 +18,11 @@ func TestTree_Get(t *testing.T) {
 	handlerProfile := 3
 	handlerAsset := 4
 
-	// Register routes
-	pathfinder.Add("/", handlerRoot)
-	pathfinder.Add("/users", handlerUsers)
-	pathfinder.Add("/users/:id/profile", handlerProfile)
-	pathfinder.Add("/assets/*filepath", handlerAsset)
+	// Register routes (now require method)
+	pathfinder.Add("GET", "/", handlerRoot)
+	pathfinder.Add("GET", "/users", handlerUsers)
+	pathfinder.Add("GET", "/users/:id/profile", handlerProfile)
+	pathfinder.Add("GET", "/assets/*filepath", handlerAsset)
 
 	tests := []struct {
 		path         string
@@ -44,14 +44,14 @@ func TestTree_Get(t *testing.T) {
 
 	for _, tc := range tests {
 		req := &request.Request{}
-		got, err := pathfinder.Get(req, tc.path)
+		got, err := pathfinder.Get(req, "GET", tc.path)
 
 		if tc.expectFound {
 			assert.NoError(t, err, "path %s: unexpected error", tc.path)
 			assert.Equal(t, tc.expectValue, got, "path %s: handler mismatch", tc.path)
 			assert.Equal(t, tc.expectParams, req.Parameters(), "path %s: params mismatch", tc.path)
 		} else {
-			assert.Equal(t, tree.ErrNotHandled, err, "path %s: expected ErrNotHandled", tc.path)
+			assert.Equal(t, routes.ErrNotHandled, err, "path %s: expected ErrNotHandled", tc.path)
 		}
 	}
 }

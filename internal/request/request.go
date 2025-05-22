@@ -3,13 +3,15 @@ package request
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/parameter/placing"
-	"github.com/KlyuchnikovV/engi/response"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
 )
+
+// TODO: refactor this
 
 const (
 	IntBase int = 10
@@ -18,7 +20,6 @@ const (
 
 type (
 	Option          func(*Parameter) error
-	Middleware      func(r *Request, w http.ResponseWriter) *response.AsObject
 	ParamsValidator interface {
 		Validate(param string) error
 	}
@@ -78,6 +79,14 @@ type Request struct {
 }
 
 func New(request *http.Request) *Request {
+	if request == nil {
+		request = &http.Request{}
+	}
+
+	if request.URL == nil {
+		request.URL = &url.URL{}
+	}
+
 	var (
 		headers    = request.Header
 		cookies    = request.Cookies()
@@ -247,3 +256,24 @@ func (r *Request) AddInPathParameter(key string, value string) {
 func (r *Request) Headers() map[string][]string {
 	return r.request.Header
 }
+
+// func (r *Request) UpdateParameter(
+// 	response *internalResponse.Response,
+// 	key string,
+// 	place placing.Placing,
+// 	value interface{},
+// 	options ...Option,
+// ) error {
+// 	var result = r.Parameters[place][key]
+// 	for _, config := range options {
+// 		if err := config(&result); err != nil {
+// 			return err
+// 		}
+// 	}
+
+// 	result.Name = key
+// 	result.Parsed = value
+// 	r.Parameters[place][key] = result
+
+// 	return nil
+// }

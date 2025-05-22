@@ -21,7 +21,7 @@ func (s *pingService) Prefix() string {
 // Routers defines the mapping of paths to handlers
 func (s *pingService) Routers() Routes {
 	return Routes{
-		"": GET(s.handlePing),
+		GET(""): Handle(s.handlePing),
 	}
 }
 

@@ -1,18 +1,18 @@
-package tree
+package routes
 
 import (
 	"errors"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/request"
 )
 
 // ErrNotHandled indicates no route matched
 var ErrNotHandled = errors.New("not handled")
 
-// Tree represents the routing trie supporting static, parameter, and wildcard segments
-type Tree[T any] struct {
+// Trie represents the routing trie supporting static, parameter, and wildcard segments
+type Trie[T any] struct {
 	root *node[T]
 }
 
@@ -20,19 +20,19 @@ type Tree[T any] struct {
 type node[T any] struct {
 	segment    string
 	children   []*node[T]
-	isParam    bool // :param segment
-	isCatchAll bool // *param segment
-	handler    *T
+	isParam    bool         // :param segment
+	isCatchAll bool         // *param segment
+	handlers   map[string]T // method -> handler
 }
 
-// NewTree initializes and returns an empty Tree
-func NewTree[T any]() *Tree[T] {
-	return &Tree[T]{root: &node[T]{}}
+// NewTrie initializes and returns an empty Tree
+func NewTrie[T any]() *Trie[T] {
+	return &Trie[T]{root: &node[T]{handlers: make(map[string]T)}}
 }
 
-// Add registers a handler at the given pattern
+// Add registers a handler at the given pattern and method
 // Pattern supports ":param" and final "*wildcard"
-func (t *Tree[T]) Add(pattern string, handler T) {
+func (t *Trie[T]) Add(method, pattern string, handler T) {
 	segments := split(pattern)
 	cur := t.root
 	for _, seg := range segments {
@@ -49,6 +49,7 @@ func (t *Tree[T]) Add(pattern string, handler T) {
 				segment:    seg,
 				isParam:    strings.HasPrefix(seg, ":"),
 				isCatchAll: strings.HasPrefix(seg, "*"),
+				handlers:   make(map[string]T),
 			}
 			cur.children = append(cur.children, child)
 		}
@@ -59,14 +60,14 @@ func (t *Tree[T]) Add(pattern string, handler T) {
 			break
 		}
 	}
-	cur.handler = &handler
+	cur.handlers[method] = handler
 }
 
-// Get finds a handler for path, populates req.Params, or returns ErrNotHandled
-func (t *Tree[T]) Get(req *request.Request, path string) (*T, error) {
+// Get finds a handler for path and method, populates req.Params, or returns ErrNotHandled
+func (t *Trie[T]) Get(req *request.Request, method, path string) (*T, error) {
 	segments := split(path)
 	params := make(map[string]string)
-	h := t.root.search(segments, params)
+	h := t.root.search(segments, params, method)
 	if h == nil {
 		return nil, ErrNotHandled
 	}
@@ -75,16 +76,21 @@ func (t *Tree[T]) Get(req *request.Request, path string) (*T, error) {
 	return h, nil
 }
 
-func (n *node[T]) search(segments []string, params map[string]string) *T {
+func (n *node[T]) search(segments []string, params map[string]string, method string) *T {
 	if len(segments) == 0 {
-		return n.handler
+		if handler, ok := n.handlers[method]; ok {
+			return &handler
+		}
+		return nil
 	}
 	seg := segments[0]
 
 	// 1. try exact match
 	for _, c := range n.children {
 		if c.segment == seg {
-			return c.search(segments[1:], params)
+			if h := c.search(segments[1:], params, method); h != nil {
+				return h
+			}
 		}
 	}
 
@@ -96,7 +102,9 @@ func (n *node[T]) search(segments []string, params map[string]string) *T {
 
 		key := strings.TrimPrefix(c.segment, ":")
 		params[key] = seg
-		return c.search(segments[1:], params)
+		if h := c.search(segments[1:], params, method); h != nil {
+			return h
+		}
 	}
 
 	// 3. wildcard match
@@ -107,7 +115,9 @@ func (n *node[T]) search(segments []string, params map[string]string) *T {
 
 		key := strings.TrimPrefix(c.segment, "*")
 		params[key] = strings.Join(segments, "/")
-		return c.handler
+		if handler, ok := c.handlers[method]; ok {
+			return &handler
+		}
 	}
 
 	return nil

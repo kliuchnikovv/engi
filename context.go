@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
 )
 
 type (
@@ -14,65 +14,67 @@ type (
 	Route    func(ctx context.Context, request Request, response Response) error
 )
 
-// GET - implements GET api method call.
-func GET(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodGet, path, route, middlewares...)
+func Handle(route Route, middlewares ...Middleware) RouteByPath {
+	return func(srv *Service, method, path string) error {
+		return srv.addRoute(
+			method,
+			path,
+			func(ctx context.Context, request *request.Request, response *response.Response) error {
+				return route(ctx, request, response)
+			},
+			middlewares...,
+		)
 	}
+}
+
+func NewMethod(method, path string) RouteMethodPair {
+	return RouteMethodPair{
+		method: method,
+		path:   path,
+	}
+}
+
+// GET - implements GET api method call.
+func GET(path string) RouteMethodPair {
+	return NewMethod(http.MethodGet, path)
 }
 
 // PUT - implements PUT api method call.
-func PUT(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodPut, path, route, middlewares...)
-	}
+func PUT(path string) RouteMethodPair {
+	return NewMethod(http.MethodPut, path)
 }
 
-// HEAD - implements HEAD api method call.
-func HEAD(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodHead, path, route, middlewares...)
-	}
+// HED - implements HEAD api method call.
+func HED(path string) RouteMethodPair {
+	return NewMethod(http.MethodHead, path)
 }
 
-// POST - implements POST api method call.
-func POST(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodPost, path, route, middlewares...)
-	}
+// PST - implements POST api method call.
+func PST(path string) RouteMethodPair {
+	return NewMethod(http.MethodPost, path)
 }
 
-// PATCH - implements PATCH api method call.
-func PATCH(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodPatch, path, route, middlewares...)
-	}
+// PTC - implements PATCH api method call.
+func PTC(path string) RouteMethodPair {
+	return NewMethod(http.MethodPatch, path)
 }
 
-// TRACE - implements TRACE api method call.
-func TRACE(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodTrace, path, route, middlewares...)
-	}
+// TRC - implements TRACE api method call.
+func TRC(path string) RouteMethodPair {
+	return NewMethod(http.MethodTrace, path)
 }
 
-// DELETE - implements DELETE api method call.
-func DELETE(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodDelete, path, route, middlewares...)
-	}
+// DEL - implements DELETE api method call.
+func DEL(path string) RouteMethodPair {
+	return NewMethod(http.MethodDelete, path)
 }
 
-// CONNECT - implements CONNECT api method call.
-func CONNECT(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodConnect, path, route, middlewares...)
-	}
+// CNT - implements CONNECT api method call.
+func CNT(path string) RouteMethodPair {
+	return NewMethod(http.MethodConnect, path)
 }
 
-// OPTIONS - implements OPTIONS api method call.
-func OPTIONS(route Route, middlewares ...Register) RouteByPath {
-	return func(srv *Service, path string) error {
-		return srv.add(http.MethodOptions, path, route, middlewares...)
-	}
+// OPT - implements OPTIONS api method call.
+func OPT(path string) RouteMethodPair {
+	return NewMethod(http.MethodOptions, path)
 }

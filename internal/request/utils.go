@@ -4,49 +4,46 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
-	"github.com/KlyuchnikovV/engi/internal/types"
-	"github.com/KlyuchnikovV/engi/parameter/placing"
-	"github.com/KlyuchnikovV/engi/response"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 // ExtractParam - extracting parameter from context, calls middleware and saves to 'context.parameters[from][key]'.
 // After this parameter can be retrieved from context using 'context.Query' methods.
 func ExtractParam(
+	request *Request,
 	key string,
 	paramPlacing placing.Placing,
-	request *Request,
 	configs []Option,
 	convert func(string) (interface{}, error),
-) *response.AsObject {
+) error {
 	var param = request.GetParameter(key, paramPlacing)
 	if len(param) == 0 {
-		return response.AsError(http.StatusBadRequest, "parameter '%s' not found", key)
+		return fmt.Errorf("parameter not found: %s", key)
 	}
 
 	result, err := convert(param)
 	if err != nil {
-		return response.AsError(http.StatusBadRequest, err.Error())
-	}
-
-	if result != nil {
-		var parameter = request.parameters[paramPlacing][key]
-
-		request.parameters[paramPlacing][key] = Parameter{
-			Name:         key,
-			Parsed:       result,
-			raw:          parameter.raw,
-			Description:  parameter.Description,
-			wasRequested: true,
-		}
+		return fmt.Errorf("can't convert parameter '%s': %s", key, err)
 	}
 
 	var parameter = request.parameters[paramPlacing][key]
+	request.parameters[paramPlacing][key] = Parameter{
+		Name:         key,
+		Parsed:       result,
+		raw:          parameter.raw,
+		Description:  parameter.Description,
+		wasRequested: true,
+	}
+	parameter = request.parameters[paramPlacing][key]
+
 	for _, config := range configs {
 		if err := config(&parameter); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 	}
 
@@ -56,24 +53,29 @@ func ExtractParam(
 	return nil
 }
 
-func ExtractBody(request *Request, unmarshaler types.Unmarshaler, pointer interface{}, configs []Option) *response.AsObject {
+func ExtractBody(
+	request *Request,
+	unmarshaler types.Unmarshaler,
+	pointer interface{},
+	configs []Option,
+) error {
 	if request.body.Parsed == nil {
 		if err := readBody(request); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 
 		if len(request.body.raw) == 0 {
-			return response.AsError(http.StatusInternalServerError, "no body found after reading")
+			return fmt.Errorf("no body found after reading")
 		}
 	}
 
 	if err := unmarshaler([]byte(request.body.raw[0]), pointer); err != nil {
-		return response.AsError(http.StatusBadRequest, err.Error())
+		return err
 	}
 
 	for _, config := range configs {
 		if err := config(&request.body); err != nil {
-			return response.AsError(http.StatusBadRequest, err.Error())
+			return err
 		}
 	}
 
@@ -95,7 +97,8 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 		unmarshal = func(b []byte, i interface{}) error {
 			typed, ok := i.(*string)
 			if !ok {
-				return response.AsError(http.StatusInternalServerError, "pointer must be of type '*string'")
+				panic("not implemented")
+				// return nil, err//response.AsError(http.StatusInternalServerError, "pointer must be of type '*string'")
 			}
 
 			*typed = string(b)
@@ -103,12 +106,14 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 			return nil
 		}
 	default:
-		return nil, response.AsError(http.StatusBadRequest, "content-type not supported: %s", contentType)
+		panic("not implemented")
+		// return nil, response.AsError(http.StatusBadRequest, "content-type not supported: %s", contentType)
 	}
 
 	return func(bytes []byte, pointer interface{}) error {
 		if err := unmarshal(bytes, pointer); err != nil {
-			return response.AsError(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
+			panic("not implemented")
+			// return response.AsError(http.StatusInternalServerError, "unmarshaling body failed: %s", err.Error())
 		}
 
 		request.body.wasRequested = true
@@ -123,7 +128,8 @@ func readBody(request *Request) error {
 
 	bytes, err := io.ReadAll(request.request.Body)
 	if err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
-		return response.AsError(http.StatusInternalServerError, "reading body failed: %s", err.Error())
+		panic("not implemented")
+		// return response.AsError(http.StatusInternalServerError, "reading body failed: %s", err.Error())
 	}
 
 	if len(bytes) != 0 {
@@ -131,7 +137,8 @@ func readBody(request *Request) error {
 	}
 
 	if len(request.body.raw) == 0 {
-		return response.AsError(http.StatusBadRequest, "no required body provided")
+		panic("not implemented")
+		// return response.AsError(http.StatusBadRequest, "no required body provided")
 	}
 
 	return err

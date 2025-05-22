@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
+
+// TODO: add gRPC and RPC support
 
 type Responser interface {
 	// ResponseWriter - returns http.ResponseWriter associated with request.
@@ -15,8 +17,10 @@ type Responser interface {
 	Object(code int, payload interface{}) error
 	// WithourContent - responses with provided custom code and no body.
 	WithoutContent(code int) error
-	// Error - responses custom error with provided code and formatted string message.
-	Error(code int, format string, args ...interface{}) error
+	// Error - responses custom error with provided code and error.
+	Error(code int, err error) error
+	// Errorf - responses custom error with provided code and formatted string message.
+	Errorf(code int, format string, args ...interface{}) error
 	// OK - writes payload into json's 'result' field with 200 http code.
 	OK(payload interface{}) error
 	// Created - responses with 201 http code and no content.
@@ -76,8 +80,8 @@ func (resp *Response) Object(code int, payload interface{}) error {
 	return nil
 }
 
-func (resp *Response) Error(code int, format string, args ...interface{}) error {
-	resp.object.SetError(fmt.Errorf(format, args...))
+func (resp *Response) Error(code int, err error) error {
+	resp.object.SetError(err)
 
 	bytes, err := resp.marshaler.Marshal(resp.object)
 	if err != nil {
@@ -93,6 +97,12 @@ func (resp *Response) Error(code int, format string, args ...interface{}) error 
 	_, err = resp.writer.Write(bytes)
 
 	return err
+}
+
+func (resp *Response) Errorf(code int, format string, args ...any) error {
+	return resp.Error(code,
+		fmt.Errorf(format, args...),
+	)
 }
 
 func (resp *Response) WithoutContent(code int) error {
@@ -113,25 +123,26 @@ func (resp *Response) NoContent() error {
 }
 
 func (resp *Response) BadRequest(format string, args ...interface{}) error {
-	return resp.Error(http.StatusBadRequest, format, args...)
+	return resp.Errorf(http.StatusBadRequest, format, args...)
 }
 
 func (resp *Response) Forbidden(format string, args ...interface{}) error {
-	return resp.Error(http.StatusForbidden, format, args...)
+	return resp.Errorf(http.StatusForbidden, format, args...)
 }
 
 func (resp *Response) NotFound(format string, args ...interface{}) error {
-	return resp.Error(http.StatusNotFound, format, args...)
+	return resp.Errorf(http.StatusNotFound, format, args...)
 }
 
 func (resp *Response) MethodNotAllowed(format string, args ...interface{}) error {
-	return resp.Error(http.StatusMethodNotAllowed, format, args...)
+	return resp.Errorf(http.StatusMethodNotAllowed, format, args...)
 }
 
 func (resp *Response) InternalServerError(format string, args ...interface{}) error {
-	return resp.Error(http.StatusInternalServerError, format, args...)
+	return resp.Errorf(http.StatusInternalServerError, format, args...)
 }
 
 func (resp *Response) ResponseWriter() http.ResponseWriter {
 	return resp.writer
 }
+

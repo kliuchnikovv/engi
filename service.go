@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/internal/middlewares"
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/tree"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 var (
@@ -20,7 +19,11 @@ var (
 )
 
 type (
-	ServiceAPI interface {
+	RouteByPath func(*Service, string, string) error
+	Routes      map[RouteMethodPair]RouteByPath
+	Middleware  routes.Middleware
+
+	ServiceDefinition interface {
 		// Prefix - prefix of all paths for this service.
 		Prefix() string
 
@@ -29,35 +32,35 @@ type (
 	}
 
 	MiddlewaresAPI interface {
-		Middlewares() []Register
+		Middlewares() []Middleware
 	}
 
 	// Service - provides basic service methods.
 	Service struct {
-		handlers map[string]*tree.Tree[Handler]
+		routes routes.Routes
 
-		marshaler types.Marshaler
+		marshaler types.Marshaler // TODO: remove from here
 		responser types.Responser
 
 		logger *slog.Logger
 
-		api  ServiceAPI
+		api  ServiceDefinition
 		path string
 	}
 
-	RouteByPath func(*Service, string) error
-	Routes      map[string]RouteByPath
-
-	Handler func(ctx context.Context, request *request.Request, response *response.Response) error
+	RouteMethodPair struct {
+		method string
+		path   string
+	}
 )
 
-func NewService(engine *Engine, api ServiceAPI, path string) *Service {
+func NewService(engine *Engine, api ServiceDefinition, path string) *Service {
 	slog.New(engine.logger.Handler().WithAttrs([]slog.Attr{
 		slog.String("service", api.Prefix()),
 	}))
 
 	return &Service{
-		handlers: make(map[string]*tree.Tree[Handler]),
+		routes: routes.New(),
 
 		marshaler: engine.responseMarshaler,
 		responser: engine.responseObject,
@@ -71,7 +74,7 @@ func NewService(engine *Engine, api ServiceAPI, path string) *Service {
 	}
 }
 
-func (srv *Service) Middlewares() []Register {
+func (srv *Service) Middlewares() []Middleware {
 	if middlewaresAPI, ok := srv.api.(MiddlewaresAPI); ok {
 		return middlewaresAPI.Middlewares()
 	}
@@ -79,77 +82,45 @@ func (srv *Service) Middlewares() []Register {
 	return nil
 }
 
-// add - creates route with custom method and path.
-func (srv *Service) add(
-	method, path string,
-	route Route,
-	options ...Register,
+func (srv *Service) addRoute(
+	method,
+	path string,
+	route routes.Handler,
+	options ...Middleware,
 ) error {
-	if _, ok := srv.handlers[method]; !ok {
-		srv.handlers[method] = tree.NewTree[Handler]()
+	var middlewares []routes.Middleware
+
+	for _, option := range srv.Middlewares() {
+		middlewares = append(middlewares, option)
 	}
 
-	var middlewares = middlewares.New()
-	for _, middleware := range srv.Middlewares() {
-		middleware(middlewares)
+	for _, option := range options {
+		middlewares = append(middlewares, option)
 	}
 
-	for _, middleware := range options {
-		middleware(middlewares)
-	}
-
-	srv.handlers[method].Add(path, srv.handleEndpoint(
-		route,
-		middlewares,
-	))
-
-	return nil
+	return srv.routes.Add(
+		method,
+		path,
+		func(ctx context.Context, request *request.Request, response *response.Response) error {
+			return route(ctx, request, response)
+		},
+		srv.marshaler,
+		srv.responser,
+		middlewares...,
+	)
 }
 
-func (srv *Service) Serve(
-	w http.ResponseWriter, r *http.Request, uri string,
-) error {
+func (srv *Service) Serve(w http.ResponseWriter, r *http.Request) error {
+	var uri, _ = strings.CutPrefix(r.URL.Path, srv.path)
+
 	srv.logger.Debug("got request",
 		slog.String("method", r.Method),
 		slog.String("path", r.URL.Path),
 	)
 
-	var (
-		request  = request.New(r)
-		response = response.New(w, srv.marshaler, srv.responser)
-	)
-
-	if _, ok := srv.handlers[r.Method]; !ok {
-		return response.NotFound(ErrMethodNotAppliable.Error())
+	if err := srv.routes.Handle(context.Background(), r, w, r.Method, uri); err != nil {
+		return err
 	}
 
-	handler, err := srv.handlers[r.Method].Get(request, strings.Trim(uri, "/"))
-	if err != nil {
-		return response.NotFound(err.Error())
-	}
-
-	if handler == nil {
-		return response.NotFound(ErrPathNotFound.Error())
-	}
-
-	return (*handler)(r.Context(), request, response)
-}
-
-func (srv *Service) handleEndpoint(
-	route Route,
-	middlewares *middlewares.Middlewares,
-) Handler {
-	return func(ctx context.Context, request *request.Request, response *response.Response) error {
-		if err := middlewares.Handle(request, response.ResponseWriter()); err != nil {
-			return response.Error(err.Code, err.ErrorString)
-		}
-
-		if err := route(ctx, request, response); err != nil {
-			if err := response.InternalServerError(err.Error()); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
+	return nil
 }
