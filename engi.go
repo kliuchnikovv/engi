@@ -34,6 +34,8 @@ type Engine struct {
 	logger *slog.Logger
 
 	tracerProvider trace.TracerProvider
+
+	signalChan chan os.Signal
 }
 
 // New initializes a new Engine with the given address and options.
@@ -54,6 +56,7 @@ func New(address string, configs ...Option) *Engine {
 		},
 		logger:         slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		tracerProvider: otel.GetTracerProvider(),
+		signalChan:     make(chan os.Signal, 1),
 	}
 
 	for _, config := range configs {
