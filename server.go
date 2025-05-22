@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,12 +20,11 @@ func (e *Engine) RegisterServices(services ...ServiceDefinition) error {
 	mux := http.NewServeMux()
 
 	for i, service := range services {
-		path, err := url.JoinPath(e.apiPrefix, service.Prefix())
-		if err != nil {
-			return fmt.Errorf("failed to join path: %w", err)
-		}
+		var (
+			path = fmt.Sprintf("%s/%s/", e.apiPrefix, service.Prefix())
+			srv  = NewService(e, service, path)
+		)
 
-		var srv = NewService(e, service, path)
 		for route, register := range service.Routers() {
 			if err := register(srv, route.method, strings.Trim(route.path, "/")); err != nil {
 				return fmt.Errorf("%w, engine: %s", err, strings.Trim(e.apiPrefix, "/"))
