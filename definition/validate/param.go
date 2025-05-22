@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/request"
 )
 
 // NotEmpty - checks if parameter is not empty by it's type.

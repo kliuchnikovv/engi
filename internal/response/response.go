@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
+
+// TODO: add gRPC and RPC support
 
 type Responser interface {
 	// ResponseWriter - returns http.ResponseWriter associated with request.
@@ -143,3 +145,4 @@ func (resp *Response) InternalServerError(format string, args ...interface{}) er
 func (resp *Response) ResponseWriter() http.ResponseWriter {
 	return resp.writer
 }
+

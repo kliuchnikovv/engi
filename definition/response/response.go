@@ -1,10 +1,12 @@
 package response
 
 import (
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/routes"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"context"
+
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 type (
@@ -17,11 +19,11 @@ type responserObject struct {
 }
 
 func (object *responserObject) Bind(route *routes.Route) error {
-	route.Responser = object.responser
 	return nil
 }
 
-func (object *responserObject) Handle(*request.Request, *response.Response) error {
+func (object *responserObject) Handle(ctx context.Context, _ *request.Request, resp *response.Response) error {
+	response.SetResponser(resp, object.responser)
 	return nil
 }
 
@@ -29,19 +31,27 @@ func (object *responserObject) Docs(*routes.Route) {
 	panic("not implemented")
 }
 
+func (object *responserObject) Priority() int {
+	return 0
+}
+
 type marshalerObject struct {
 	marshaler types.Marshaler
 }
 
 func (object *marshalerObject) Bind(route *routes.Route) error {
-	route.Marshaler = object.marshaler
 	return nil
 }
 
-func (object *marshalerObject) Handle(*request.Request, *response.Response) error {
+func (object *marshalerObject) Handle(ctx context.Context, _ *request.Request, resp *response.Response) error {
+	response.SetMarshaler(resp, object.marshaler)
 	return nil
 }
 
 func (object *marshalerObject) Docs(*routes.Route) {
 	panic("not implemented")
+}
+
+func (object *marshalerObject) Priority() int {
+	return 0
 }

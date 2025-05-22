@@ -1,15 +1,16 @@
 package parameter
 
 import (
+	"context"
 	"regexp"
 	"strconv"
 	"time"
 
-	"github.com/KlyuchnikovV/engi"
-	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/routes"
+	"github.com/kliuchnikovv/engi"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
 )
 
 var numRegexp = regexp.MustCompile("[0-9]")
@@ -32,17 +33,18 @@ func (parameter Parameter) Regexp() string {
 	return parameter.regexp
 }
 
-func (parameter Parameter) Bind(route *routes.Route) error {
-	if _, ok := route.Params[parameter.placing]; !ok {
-		route.Params[parameter.placing] = make(map[string]routes.Option)
-	}
+// func (parameter Parameter) Bind(route *routes.Route) error {
+// 	// if _, ok := route.Params[parameter.placing]; !ok {
+// 	// 	route.Params[parameter.placing] = make(map[string]routes.Middleware)
+// 	// }
 
-	route.Params[parameter.placing][parameter.key] = parameter
+// 	// route.Params[parameter.placing][parameter.key] = parameter
 
-	return nil
-}
+// 	return nil
+// }
 
 func (parameter Parameter) Handle(
+	ctx context.Context,
 	r *request.Request,
 	response *response.Response,
 ) error {
@@ -56,6 +58,10 @@ func (parameter Parameter) Handle(
 
 func (parameter Parameter) Docs(route *routes.Route) {
 	panic("not implemented")
+}
+
+func (parameter Parameter) Priority() int {
+	return 100
 }
 
 // Bool - mandatory boolean Parameter from request by 'key'.

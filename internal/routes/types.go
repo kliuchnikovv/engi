@@ -1,8 +1,10 @@
 package routes
 
 import (
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
+	"context"
+
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
 )
 
 type NamedParameter interface {
@@ -10,11 +12,14 @@ type NamedParameter interface {
 	Regexp() string
 }
 
-type Option interface {
-	Bind(*Route) error
-	Handle(*request.Request, *response.Response) error
-	Docs(*Route)
-}
+type (
+	Middleware interface {
+		// Bind(*Route) error
+		Handle(context.Context, *request.Request, *response.Response) error
+		Docs(*Route)
+		Priority() int
+	}
+)
 
 func contains(slice []string, item string) bool {
 	if len(slice) == 0 {

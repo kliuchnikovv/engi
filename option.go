@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/definition/response"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/definition/response"
+	"github.com/kliuchnikovv/engi/internal/types"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Option func(*Engine)
@@ -47,6 +48,13 @@ func WithPrefix(prefix string) Option {
 func WithLogger(handler slog.Handler) Option {
 	return func(engine *Engine) {
 		engine.logger = slog.New(handler)
+	}
+}
+
+// WithTracerProvider sets the OpenTelemetry TracerProvider.
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(e *Engine) {
+		e.tracerProvider = tp
 	}
 }
 

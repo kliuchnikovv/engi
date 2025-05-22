@@ -1,10 +1,10 @@
 package path
 
 import (
-	"github.com/KlyuchnikovV/engi"
-	"github.com/KlyuchnikovV/engi/definition/parameter"
-	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
-	"github.com/KlyuchnikovV/engi/internal/request"
+	"github.com/kliuchnikovv/engi"
+	"github.com/kliuchnikovv/engi/definition/parameter"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/request"
 )
 
 // Bool - mandatory boolean Parameter from request by 'key'.

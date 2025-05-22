@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/routes"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 var (
@@ -19,9 +19,9 @@ var (
 )
 
 type (
-	RouteByPath func(*Service, string)
-	Routes      map[string]RouteByPath
-	Middleware  routes.Option
+	RouteByPath func(*Service, string, string) error
+	Routes      map[RouteMethodPair]RouteByPath
+	Middleware  routes.Middleware
 
 	ServiceDefinition interface {
 		// Prefix - prefix of all paths for this service.
@@ -46,6 +46,11 @@ type (
 
 		api  ServiceDefinition
 		path string
+	}
+
+	RouteMethodPair struct {
+		method string
+		path   string
 	}
 )
 
@@ -82,8 +87,8 @@ func (srv *Service) addRoute(
 	path string,
 	route routes.Handler,
 	options ...Middleware,
-) {
-	var middlewares []routes.Option
+) error {
+	var middlewares []routes.Middleware
 
 	for _, option := range srv.Middlewares() {
 		middlewares = append(middlewares, option)
@@ -93,7 +98,7 @@ func (srv *Service) addRoute(
 		middlewares = append(middlewares, option)
 	}
 
-	srv.routes.Add(
+	return srv.routes.Add(
 		method,
 		path,
 		func(ctx context.Context, request *request.Request, response *response.Response) error {
@@ -105,7 +110,7 @@ func (srv *Service) addRoute(
 	)
 }
 
-func (srv *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (srv *Service) Serve(w http.ResponseWriter, r *http.Request) error {
 	var uri, _ = strings.CutPrefix(r.URL.Path, srv.path)
 
 	srv.logger.Debug("got request",
@@ -113,9 +118,9 @@ func (srv *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.String("path", r.URL.Path),
 	)
 
-	if err := srv.routes.Handle(r, w, uri); err != nil {
-		panic(err)
+	if err := srv.routes.Handle(context.Background(), r, w, r.Method, uri); err != nil {
+		return err
 	}
 
-	srv.logger.Debug("request handled")
+	return nil
 }

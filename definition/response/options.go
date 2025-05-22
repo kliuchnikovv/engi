@@ -1,17 +1,17 @@
 package response
 
 import (
-	"github.com/KlyuchnikovV/engi/internal/routes"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/routes"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
-func ResponseAs(responser func() Responser) routes.Option {
+func ResponseAs(responser func() Responser) routes.Middleware {
 	return &responserObject{
 		responser: responser(),
 	}
 }
 
-func MarshalAs(marshaler func() Marshaler) routes.Option {
+func MarshalAs(marshaler func() Marshaler) routes.Middleware {
 	return &marshalerObject{
 		marshaler: types.Marshaler(marshaler()),
 	}

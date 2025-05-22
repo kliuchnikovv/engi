@@ -1,11 +1,13 @@
 package parameter
 
 import (
-	"github.com/KlyuchnikovV/engi"
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/routes"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"context"
+
+	"github.com/kliuchnikovv/engi"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 type BodyParameter struct {
@@ -15,13 +17,13 @@ type BodyParameter struct {
 	options     []request.Option
 }
 
-func (body *BodyParameter) Bind(route *routes.Route) error {
-	route.Body = body
+// func (body *BodyParameter) Bind(route *routes.Route) error {
+// 	// route.Body = body
 
-	return nil
-}
+// 	return nil
+// }
 
-func (body *BodyParameter) Handle(r *request.Request, response *response.Response) error {
+func (body *BodyParameter) Handle(ctx context.Context, r *request.Request, response *response.Response) error {
 	var (
 		err         error
 		unmarshaler = body.unmarshaler
@@ -39,6 +41,10 @@ func (body *BodyParameter) Handle(r *request.Request, response *response.Respons
 
 func (body *BodyParameter) Docs(route *routes.Route) {
 	panic("not implemented")
+}
+
+func (body *BodyParameter) Priority() int {
+	return 100
 }
 
 // Body - takes pointer to structure and saves casted request body into context and pointer.

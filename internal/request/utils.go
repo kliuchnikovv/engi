@@ -8,8 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/types"
 )
 
 // ExtractParam - extracting parameter from context, calls middleware and saves to 'context.parameters[from][key]'.
@@ -31,15 +31,15 @@ func ExtractParam(
 		return fmt.Errorf("can't convert parameter '%s': %s", key, err)
 	}
 
-	var parameter = request.Parameters[paramPlacing][key]
-	request.Parameters[paramPlacing][key] = Parameter{
+	var parameter = request.parameters[paramPlacing][key]
+	request.parameters[paramPlacing][key] = Parameter{
 		Name:         key,
 		Parsed:       result,
 		raw:          parameter.raw,
 		Description:  parameter.Description,
 		wasRequested: true,
 	}
-	parameter = request.Parameters[paramPlacing][key]
+	parameter = request.parameters[paramPlacing][key]
 
 	for _, config := range configs {
 		if err := config(&parameter); err != nil {
@@ -48,7 +48,7 @@ func ExtractParam(
 	}
 
 	parameter.Name = key
-	request.Parameters[paramPlacing][key] = parameter
+	request.parameters[paramPlacing][key] = parameter
 
 	return nil
 }
@@ -142,4 +142,26 @@ func readBody(request *Request) error {
 	}
 
 	return err
+}
+
+func SetParameters(r *Request, place placing.Placing, params map[string]string) {
+	if len(params) == 0 {
+		return
+	}
+
+	if r.parameters == nil {
+		r.parameters = make(map[placing.Placing]map[string]Parameter)
+	}
+
+	if r.parameters[place] == nil {
+		r.parameters[place] = make(map[string]Parameter)
+	}
+
+	for key, value := range params {
+		r.parameters[place][key] = Parameter{
+			Name:   key,
+			raw:    []string{value},
+			Parsed: value,
+		}
+	}
 }

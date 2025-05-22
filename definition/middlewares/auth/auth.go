@@ -1,16 +1,19 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/KlyuchnikovV/engi"
-	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
-	"github.com/KlyuchnikovV/engi/internal/request"
-	"github.com/KlyuchnikovV/engi/internal/response"
-	"github.com/KlyuchnikovV/engi/internal/routes"
+	"github.com/kliuchnikovv/engi"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/internal/request"
+	"github.com/kliuchnikovv/engi/internal/response"
+	"github.com/kliuchnikovv/engi/internal/routes"
 )
+
+// TODO: add authorization middleware type
 
 const (
 	authHeader = "Authorization"
@@ -23,27 +26,31 @@ var errUnathorized = errors.New("Unauthorized.")
 type Authorization struct {
 	name string
 
-	handle func(r *http.Request, w http.ResponseWriter) error
+	handle func(context.Context, *http.Request, http.ResponseWriter) error
 }
 
 func (auth *Authorization) Bind(route *routes.Route) error {
-	route.SetAuth(auth.handle)
+	// route.SetAuth(auth.handle)
 
 	return nil
 }
 
-func (auth *Authorization) Handle(*request.Request, *response.Response) error {
-	return nil
+func (auth *Authorization) Handle(ctx context.Context, req *request.Request, resp *response.Response) error {
+	return auth.handle(ctx, req.GetRequest(), resp.ResponseWriter())
 }
 
 func (auth *Authorization) Docs(route *routes.Route) {
 	panic("not implemented")
 }
 
+func (auth *Authorization) Priority() int {
+	return 20
+}
+
 func NoAuth() engi.Middleware {
 	return &Authorization{
 		name: "no auth",
-		handle: func(r *http.Request, w http.ResponseWriter) error {
+		handle: func(_ context.Context, _ *http.Request, _ http.ResponseWriter) error {
 			return nil
 		},
 	}
@@ -52,7 +59,7 @@ func NoAuth() engi.Middleware {
 func Basic(username, password string) engi.Middleware {
 	return &Authorization{
 		name: "basic",
-		handle: func(r *http.Request, w http.ResponseWriter) error {
+		handle: func(_ context.Context, r *http.Request, w http.ResponseWriter) error {
 			gotUser, gotPassword, ok := r.BasicAuth()
 			if !ok {
 				return errUnathorized
@@ -80,7 +87,7 @@ func BearerFunc(
 ) engi.Middleware {
 	return &Authorization{
 		name: "bearer",
-		handle: func(r *http.Request, w http.ResponseWriter) error {
+		handle: func(_ context.Context, r *http.Request, w http.ResponseWriter) error {
 			var header = r.Header.Get(authHeader)
 			if len(header) == 0 {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -108,7 +115,7 @@ func APIKey(
 
 	return &Authorization{
 		name: "api key",
-		handle: func(r *http.Request, w http.ResponseWriter) error {
+		handle: func(_ context.Context, r *http.Request, w http.ResponseWriter) error {
 			var parameter string
 
 			switch place {

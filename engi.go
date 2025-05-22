@@ -6,7 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/internal/types"
+	"github.com/kliuchnikovv/engi/internal/types"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // TODO: add checking length of request from comments about field length
@@ -30,6 +32,8 @@ type Engine struct {
 
 	server *http.Server
 	logger *slog.Logger
+
+	tracerProvider trace.TracerProvider
 }
 
 func New(address string, configs ...Option) *Engine {
@@ -47,7 +51,8 @@ func New(address string, configs ...Option) *Engine {
 			IdleTimeout:       defaultTimeout,
 			ReadHeaderTimeout: defaultTimeout,
 		},
-		logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		logger:         slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		tracerProvider: otel.GetTracerProvider(),
 	}
 
 	for _, config := range configs {

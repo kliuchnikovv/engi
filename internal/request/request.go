@@ -3,12 +3,15 @@ package request
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/KlyuchnikovV/engi/definition/parameter/placing"
+	"github.com/kliuchnikovv/engi/definition/parameter/placing"
 )
+
+// TODO: refactor this
 
 const (
 	IntBase int = 10
@@ -24,8 +27,8 @@ type (
 	Requester interface {
 		// Headers - returns request headers.
 		Headers() map[string][]string
-		// All - returns all parsed parameters.
-		All() map[placing.Placing]map[string]string
+		// Parameters - returns all parsed parameters.
+		Parameters() map[placing.Placing]map[string]string
 		// GetParameter - returns parameter value from defined place.
 		GetParameter(value string, place placing.Placing) string
 		// GetRequest - return http.Request object associated with request.
@@ -70,44 +73,52 @@ type Request struct {
 	request *http.Request
 
 	body       Parameter
-	Parameters map[placing.Placing]map[string]Parameter
+	parameters map[placing.Placing]map[string]Parameter
 
 	Description string
 }
 
 func New(request *http.Request) *Request {
+	if request == nil {
+		request = &http.Request{}
+	}
+
+	if request.URL == nil {
+		request.URL = &url.URL{}
+	}
+
 	var (
 		headers    = request.Header
 		cookies    = request.Cookies()
 		parameters = request.URL.Query()
 		r          = Request{
 			request:    request,
-			Parameters: make(map[placing.Placing]map[string]Parameter),
+			parameters: make(map[placing.Placing]map[string]Parameter),
 		}
 	)
 
-	r.Parameters[placing.InQuery] = make(map[string]Parameter, len(parameters))
+	r.parameters[placing.InQuery] = make(map[string]Parameter, len(parameters))
 
 	for key, param := range parameters {
-		r.Parameters[placing.InQuery][key] = Parameter{
+		r.parameters[placing.InQuery][key] = Parameter{
 			Name: key,
 			raw:  param,
 		}
 	}
 
-	r.Parameters[placing.InCookie] = make(map[string]Parameter, len(cookies))
+	r.parameters[placing.InCookie] = make(map[string]Parameter, len(cookies))
 
 	for _, cookie := range cookies {
-		r.Parameters[placing.InCookie][cookie.Name] = Parameter{
+		r.parameters[placing.InCookie][cookie.Name] = Parameter{
 			Name: cookie.Name,
 			raw:  []string{cookie.Value},
 		}
 	}
 
-	r.Parameters[placing.InHeader] = make(map[string]Parameter, len(headers))
+	r.parameters[placing.InHeader] = make(map[string]Parameter, len(headers))
 
 	for key, value := range headers {
-		r.Parameters[placing.InHeader][key] = Parameter{
+		r.parameters[placing.InHeader][key] = Parameter{
 			Name: key,
 			raw:  value,
 		}
@@ -118,7 +129,7 @@ func New(request *http.Request) *Request {
 
 func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 	if r.isMandatoryParam(key, paramPlacing) {
-		if result, ok := r.Parameters[paramPlacing][key].Parsed.(bool); ok {
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(bool); ok {
 			return result
 		}
 
@@ -132,7 +143,7 @@ func (r *Request) Bool(key string, paramPlacing placing.Placing) bool {
 
 func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 	if r.isMandatoryParam(key, paramPlacing) {
-		if result, ok := r.Parameters[paramPlacing][key].Parsed.(int64); ok {
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(int64); ok {
 			return result
 		}
 
@@ -146,7 +157,7 @@ func (r *Request) Integer(key string, paramPlacing placing.Placing) int64 {
 
 func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 	if r.isMandatoryParam(key, paramPlacing) {
-		if result, ok := r.Parameters[paramPlacing][key].Parsed.(float64); ok {
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(float64); ok {
 			return result
 		}
 
@@ -160,7 +171,7 @@ func (r *Request) Float(key string, paramPlacing placing.Placing) float64 {
 
 func (r *Request) String(key string, paramPlacing placing.Placing) string {
 	if r.isMandatoryParam(key, paramPlacing) {
-		if result, ok := r.Parameters[paramPlacing][key].Parsed.(string); ok {
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(string); ok {
 			return result
 		}
 
@@ -172,7 +183,7 @@ func (r *Request) String(key string, paramPlacing placing.Placing) string {
 
 func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Time {
 	if r.isMandatoryParam(key, paramPlacing) {
-		if result, ok := r.Parameters[paramPlacing][key].Parsed.(time.Time); ok {
+		if result, ok := r.parameters[paramPlacing][key].Parsed.(time.Time); ok {
 			return result
 		}
 
@@ -184,10 +195,10 @@ func (r *Request) Time(key, layout string, paramPlacing placing.Placing) time.Ti
 	return result
 }
 
-func (r *Request) All() map[placing.Placing]map[string]string {
+func (r *Request) Parameters() map[placing.Placing]map[string]string {
 	var parameters = make(map[placing.Placing]map[string]string)
 
-	for place, params := range r.Parameters {
+	for place, params := range r.parameters {
 		parameters[place] = make(map[string]string)
 
 		for name := range params {
@@ -207,7 +218,7 @@ func (r *Request) isMandatoryParam(key string, paramPlacing placing.Placing) boo
 	case placing.InPath:
 		return true
 	case placing.InQuery:
-		param, ok := r.Parameters[paramPlacing][key]
+		param, ok := r.parameters[paramPlacing][key]
 		return ok && param.wasRequested
 	default:
 		return false
@@ -215,15 +226,15 @@ func (r *Request) isMandatoryParam(key string, paramPlacing placing.Placing) boo
 }
 
 func (r *Request) GetParameter(key string, paramPlacing placing.Placing) string {
-	if _, ok := r.Parameters[paramPlacing][key]; !ok {
+	if _, ok := r.parameters[paramPlacing][key]; !ok {
 		return ""
 	}
 
-	if len(r.Parameters[paramPlacing][key].raw) > 1 {
-		return strings.Join(r.Parameters[paramPlacing][key].raw, ", ")
+	if len(r.parameters[paramPlacing][key].raw) > 1 {
+		return strings.Join(r.parameters[paramPlacing][key].raw, ", ")
 	}
 
-	return r.Parameters[paramPlacing][key].raw[0]
+	return r.parameters[paramPlacing][key].raw[0]
 }
 
 func (r *Request) GetRequest() *http.Request {
@@ -231,11 +242,11 @@ func (r *Request) GetRequest() *http.Request {
 }
 
 func (r *Request) AddInPathParameter(key string, value string) {
-	if r.Parameters[placing.InPath] == nil {
-		r.Parameters[placing.InPath] = make(map[string]Parameter)
+	if r.parameters[placing.InPath] == nil {
+		r.parameters[placing.InPath] = make(map[string]Parameter)
 	}
 
-	r.Parameters[placing.InPath][key] = Parameter{
+	r.parameters[placing.InPath][key] = Parameter{
 		raw:          []string{value},
 		wasRequested: true,
 		Name:         key,
