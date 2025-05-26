@@ -13,6 +13,8 @@
 ### Description
 This framework forces developer to write more structured, human-centric code.
 
+Engi is a lightweight Go framework designed to give developers the most intuitive and declarative API for building HTTP services. Its key idea is structured services, automatic parameter validation, convenient response wrappers, and an embedded documentation layer—so that the framework, rather than the development team, handles as much boilerplate code as possible.
+
 ### Installation
 
 ```sh
@@ -24,12 +26,12 @@ The idea of this framework is to create **services**, each of which works with o
 
 ```golang
 type NotesAPI struct {
-	notesStore store.NoteStore
+  notesStore store.NoteStore
 }
 
 func (api *NotesAPI) Prefix() string {
-	// All requests to NotesAPI will have prefix "/notes" in their url path, e.g. /{engi-prefix}/notes/{api-route}
-    return "notes"
+  // All requests to NotesAPI will have prefix "/notes" in their url path, e.g. /{engi-prefix}/notes/{api-route}
+  return "notes"
 }
 ```
 
@@ -43,15 +45,15 @@ with additional middleware functions, including those for requesting mandatory p
 
 ```golang
 func (api *NotesAPI) Routers() engi.Routes {
-	return engi.Routes{
-        ...
-        engi.GET("{id}"): engi.Handle( // Using GET method to get a note with {id} using path "{url}/notes/{id}".
-			api.Get,                                   // Handler to handle this request.
-			path.Integer("id", validate.Greater(0)),   // Path parameter to be parsed into integer.
-			middlewares.Description("get note by id"), // Description of this route for documentation purposes.
-		),
-        ...
-    }
+  return engi.Routes{
+    ...
+    engi.GET("{id}"): engi.Handle( // Using GET method to get a note with {id} using path "{url}/notes/{id}".
+      api.Get,                                   // Handler to handle this request.
+      path.Integer("id", validate.Greater(0)),   // Path parameter to be parsed into integer.
+      middlewares.Description("get note by id"), // Description of this route for documentation purposes.
+    ),
+    ...
+  }
 }
 ```
 
@@ -61,24 +63,24 @@ Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an
 
 ```golang
 func (api *NotesAPI) Get(
-	ctx context.Context,    // Standart Golang context
-	request engi.Request,   // Request - contains all metadata about request itself and parsed parameters that you described in Routers method.
-	response engi.Response, // Response - contains wrappers for easy and painless response creation without any formatting and manipulating with headers and statuses.
+  ctx context.Context,    // Standart Golang context
+  request engi.Request,   // Request - contains all metadata about request itself and parsed parameters that you described in Routers method.
+  response engi.Response, // Response - contains wrappers for easy and painless response creation without any formatting and manipulating with headers and statuses.
 ) error {
-	// Extract variable from path and cast in to integer.
-	// If there is no possibility to cast, BadRequest error will be returned automatically.
-	var id = request.Integer("id", placing.InPath) 
+  // Extract variable from path and cast in to integer.
+  // If there is no possibility to cast, BadRequest error will be returned automatically.
+  var id = request.Integer("id", placing.InPath) 
 
-	note, err := api.notesStore.GetByID(ctx, id)
-	if err != nil {
-		// In order to return error, use predefined wrappers.
-		// They will automatically wrap error and marshal it using settings from middlewares and engine.
-		return response.NotFound(err.Error())
-	}
+  note, err := api.notesStore.GetByID(ctx, id)
+  if err != nil {
+    // In order to return error, use predefined wrappers.
+    // They will automatically wrap error and marshal it using settings from middlewares and engine.
+    return response.NotFound(err.Error())
+  }
 
-	// In order to return result, use predefined wrappers.
-	// They will automatically wrap object and marshal it using settings from middlewares and engine.
-	return response.OK(note)
+  // In order to return result, use predefined wrappers.
+  // They will automatically wrap object and marshal it using settings from middlewares and engine.
+  return response.OK(note)
 }
 ```
 
@@ -86,30 +88,30 @@ As a result, to create an application, it remains to create server with `engi.Ne
 
 ```golang
 func main() {
-	// 1. Create engine
-	var engine = engi.New(":8080", // Defines address to listen.
-		engi.WithPrefix("api"),    // Defines global prefix for all routes.
-		engi.ResponseAsJSON(       // Defines all responses to be marshaled as JSON objects.
-			response.AsIs,         // All responses will use no wrappers and will be sent as is.
-		),
-		engi.WithLogger(slog.NewTextHandler(os.Stdout,
-			&slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		)),
-	)
+  // 1. Create engine
+  var engine = engi.New(":8080", // Defines address to listen.
+    engi.WithPrefix("api"),    // Defines global prefix for all routes.
+    engi.ResponseAsJSON(       // Defines all responses to be marshaled as JSON objects.
+      response.AsIs,         // All responses will use no wrappers and will be sent as is.
+    ),
+    engi.WithLogger(slog.NewTextHandler(os.Stdout,
+      &slog.HandlerOptions{
+        Level: slog.LevelDebug,
+      },
+    )),
+  )
 
-	// 2. Register services
-	if err := engine.RegisterServices(
-		services.NewNotesAPI(*store.NewNoteStore(db)),
-	); err != nil {
-		return err
-	}
+  // 2. Register services
+  if err := engine.RegisterServices(
+    services.NewNotesAPI(*store.NewNoteStore(db)),
+  ); err != nil {
+    return err
+  }
 
-	// 3. Start server - blocking call
-	if err := engine.Start(); err != nil {
-		log.Fatal(err)
-	}
+  // 3. Start server - blocking call
+  if err := engine.Start(); err != nil {
+    log.Fatal(err)
+  }
 }
 ```
 
