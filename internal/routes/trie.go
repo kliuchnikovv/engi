@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/kliuchnikovv/engi/definition/parameter/placing"
@@ -61,6 +62,7 @@ func (t *Trie[T]) Add(method, pattern string, handler T) {
 		}
 	}
 	cur.handlers[method] = handler
+	cur.handlers[http.MethodOptions] = handler
 }
 
 // Get finds a handler for path and method, populates req.Params, or returns ErrNotHandled

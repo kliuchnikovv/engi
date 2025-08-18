@@ -34,6 +34,9 @@ func (body *BodyParameter) Handle(ctx context.Context, r *request.Request, respo
 		if err != nil {
 			return response.InternalServerError(err.Error())
 		}
+		if unmarshaler == nil {
+			return nil
+		}
 	}
 
 	return request.ExtractBody(r, unmarshaler, body.pointer, body.options)

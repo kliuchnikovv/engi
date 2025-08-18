@@ -79,6 +79,10 @@ func (route *Route) Handle(
 		}
 	}
 
+	if request.GetRequest().Method == http.MethodOptions {
+		return response.OK(nil)
+	}
+
 	return route.handler(
 		ctx,
 		request,

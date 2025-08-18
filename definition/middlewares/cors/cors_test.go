@@ -248,11 +248,11 @@ func TestCorsAllowedMethods_Handle(t *testing.T) {
 		wantStatus    string
 	}{
 		{
-			name:          "missing header returns bad request",
+			name:          "missing header skips validation",
 			methods:       corsAllowedMethods{"GET", "POST"},
 			headerValue:   "",
 			headerPresent: false,
-			wantStatus:    "Bad Request",
+			wantStatus:    "",
 		},
 		{
 			name:          "method not allowed returns method not allowed",
@@ -291,4 +291,27 @@ func TestCorsAllowedMethods_Handle(t *testing.T) {
 			assert.Equal(t, tt.wantStatus, writer.header.Get("Status"))
 		})
 	}
+}
+
+func TestCorsAllowedMethods_Handle_OPTIONS(t *testing.T) {
+	methods := corsAllowedMethods{"GET", "POST", "PUT"}
+	
+	header := http.Header{}
+	header.Set(corsRequestMethodHeader, "POST")
+	
+	req := request.New(&http.Request{
+		Method: http.MethodOptions,
+		Header: header,
+	})
+	
+	writer := &mockWriter{header: http.Header{}}
+	resp := response.New(
+		writer,
+		types.NewJSONMarshaler(),
+		&types.ResponseAsIs{},
+	)
+
+	err := methods.Handle(context.Background(), req, resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "GET,POST,PUT", writer.header.Get("Access-Control-Allow-Methods"))
 }

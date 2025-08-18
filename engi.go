@@ -65,3 +65,7 @@ func New(address string, configs ...Option) *Engine {
 
 	return engine
 }
+
+func (e *Engine) Server() *http.Server {
+	return e.server
+}

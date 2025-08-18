@@ -57,7 +57,7 @@ func (headers corsAllowedHeaders) Handle(ctx context.Context, req *request.Reque
 			continue
 		}
 
-		if !contains(headers, canonicalHeader) {
+		if headers[0] != "*" && !contains(headers, canonicalHeader) {
 			return resp.Forbidden(ErrMissingConanicalHeader.Error())
 		}
 
@@ -82,15 +82,29 @@ func (headers corsAllowedHeaders) Priority() int {
 type corsAllowedMethods []string
 
 func (methods corsAllowedMethods) Handle(ctx context.Context, req *request.Request, resp *response.Response) error {
-	var r = req.GetRequest()
+	var (
+		r = req.GetRequest()
+		w = resp.ResponseWriter()
+	)
 
+	// Check if this is a preflight CORS request (has Access-Control-Request-Method header)
 	if _, ok := r.Header[corsRequestMethodHeader]; !ok {
-		return resp.BadRequest(ErrCORSMethodHeaderNotFound.Error())
+		// No CORS header, skip validation (not a preflight request)
+		return nil
 	}
 
 	method := r.Header.Get(corsRequestMethodHeader)
-	if !contains(methods, method) {
+	if methods[0] != "*" && !contains(methods, method) {
 		return resp.MethodNotAllowed(ErrCORSMethodHeaderNotAllowed.Error())
+	}
+
+	// For OPTIONS requests (preflight), set the allowed methods header
+	if r.Method == corsOptionMethod {
+		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
+	}
+
+	if methods[0] == "*" {
+		w.Header().Set("Access-Control-Allow-Methods", method)
 	}
 
 	return nil

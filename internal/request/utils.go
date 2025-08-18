@@ -106,7 +106,8 @@ func GetUnmarshaler(request *Request) (types.Unmarshaler, error) {
 			return nil
 		}
 	default:
-		panic("not implemented")
+		return nil, nil
+		// panic("not implemented")
 		// return nil, response.AsError(http.StatusBadRequest, "content-type not supported: %s", contentType)
 	}
 
