@@ -19,7 +19,7 @@ func (origins corsAllowedOrigins) Handle(ctx context.Context, req *request.Reque
 		origin = r.Header.Get(corsOriginHeader)
 	)
 
-	if !contains(origins, origin) && !contains(origins, corsOriginMatchAll) {
+	if origins[0] != "*" && !contains(origins, origin) && !contains(origins, corsOriginMatchAll) {
 		return resp.Forbidden("%s: '%s'", ErrOriginNotAllowed, origin)
 	}
 
