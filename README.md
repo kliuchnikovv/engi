@@ -37,21 +37,72 @@ The handler described as a **relative** path to the handler wrapped in a request
 with additional middleware functions, including those for requesting mandatory parameters:
 
 ```golang
-func (api *NotesAPI) Routers() engi.Routes {\n  return engi.Routes{\n    ...\n    engi.GET(\"{id}\"): engi.Handle( // Using GET method to get a note with {id} using path \"{url}/notes/{id}\".
-      api.Get,                                   // Handler to handle this request.\n      path.Integer(\"id\", validate.Greater(0)),   // Path parameter to be parsed into integer.\n      middlewares.Description(\"get note by id\"), // Description of this route for documentation purposes.\n    ),\n    ...\n  }\n}\n```
+func (api *NotesAPI) Routers() engi.Routes {\n  return engi.Routes{\n    ...\n    engi.GET("{id}"): engi.Handle( // Using GET method to get a note with {id} using path "{url}/notes/{id}".
+      api.Get,                                   // Handler to handle this request.
+      path.Integer("id", validate.Greater(0)),   // Path parameter to be parsed into integer.
+      middlewares.Description("get note by id"), // Description of this route for documentation purposes.
+    ),
+    ...
+  }
+}
+```
 
 Further, when requesting, all the necessary parameters will be checked for the presence and type (if the required parameter is missing, `BadRequest` error will be returned) and then will be available for use in handlers through the context `ctx`. <!--(godoc link?)-->
 
 Also, through the context `ctx`<!--(godoc link?)-->, you can form a result or an error using predefined functions for the most used answers:
 
 ```golang
-func (api *NotesAPI) Get(\n  ctx context.Context,    // Standart Golang context\n  request engi.Request,   // Request - contains all metadata about request itself and parsed parameters that you described in Routers method.\n  response engi.Response, // Response - contains wrappers for easy and painless response creation without any formatting and manipulating with headers and statuses.\n) error {\n  // Extract variable from path and cast in to integer.\n  // If there is no possibility to cast, BadRequest error will be returned automatically.\n  var id = request.Integer(\"id\", placing.InPath) \n\n  note, err := api.notesStore.GetByID(ctx, id)\n  if err != nil {\n    // In order to return error, use predefined wrappers.\n    // They will automatically wrap error and marshal it using settings from middlewares and engine.\n    return response.NotFound(err.Error())\n  }\n\n  // In order to return result, use predefined wrappers.\n  // They will automatically wrap object and marshal it using settings from middlewares and engine.\n  return response.OK(note)\n}\n```
+func (api *NotesAPI) Get(
+  ctx context.Context,    // Standart Golang context
+  request engi.Request,   // Request - contains all metadata about request itself and parsed parameters that you described in Routers method.
+  response engi.Response, // Response - contains wrappers for easy and painless response creation without any formatting and manipulating with headers and statuses.
+) error {
+  // Extract variable from path and cast in to integer.
+  // If there is no possibility to cast, BadRequest error will be returned automatically.
+  var id = request.Integer("id", placing.InPath) 
+
+  note, err := api.notesStore.GetByID(ctx, id)
+  if err != nil {
+    // In order to return error, use predefined wrappers.
+    // They will automatically wrap error and marshal it using settings from middlewares and engine.
+    return response.NotFound(err.Error())
+  }
+
+  // In order to return result, use predefined wrappers.
+  // They will automatically wrap object and marshal it using settings from middlewares and engine.
+  return response.OK(note)
+}
+```
 
 As a result, to create an application, it remains to create server with `engi.New` passing tcp address and global (for every handler) prefix, register service and start the api.
 
 ```golang
-func main() {\n  // 1. Create engine\n  var engine = engi.New(\":8080\", // Defines address to listen.\n    engi.WithPrefix(\"api\"),    // Defines global prefix for all routes.\n    engi.ResponseAsJSON(       // Defines all responses to be marshaled as JSON objects.\n      response.AsIs,         // All responses will use no wrappers and will be sent as is.\n    ),\n    engi.WithLogger(slog.NewTextHandler(os.Stdout,\n      &slog.HandlerOptions{\n        Level: slog.LevelDebug,\n      },\n    )),\n  )\n
-  // 2. Register services\n  if err := engine.RegisterServices(\n    services.NewNotesAPI(*store.NewNoteStore(db)),\n  ); err != nil {\n    return err\n  }\n
-  // 3. Start server - blocking call\n  if err := engine.Start(); err != nil {\n    log.Fatal(err)\n  }\n}\n```
+func main() {
+  // 1. Create engine
+  var engine = engi.New(":8080", // Defines address to listen.
+    engi.WithPrefix("api"),    // Defines global prefix for all routes.
+    engi.ResponseAsJSON(       // Defines all responses to be marshaled as JSON objects.
+      response.AsIs,         // All responses will use no wrappers and will be sent as is.
+    ),
+    engi.WithLogger(slog.NewTextHandler(os.Stdout,
+      &slog.HandlerOptions{
+        Level: slog.LevelDebug,
+      },
+    )),
+  )
+
+  // 2. Register services
+  if err := engine.RegisterServices(
+    services.NewNotesAPI(*store.NewNoteStore(db)),
+  ); err != nil {
+    return err
+  }
+
+  // 3. Start server - blocking call
+  if err := engine.Start(); err != nil {
+    log.Fatal(err)
+  }
+}
+```
 
  Workable example of this api you can found [here](https://github.com/kliuchnikovv/engi-example)
