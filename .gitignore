@@ -18,3 +18,10 @@ vendor/
 # Config folders
 .vscode
 .idea
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key

@@ -116,3 +116,13 @@ func main() {
 ```
 
 Workable example of this api you can found [here](https://github.com/kliuchnikovv/engi-example)
+
+### Roadmap
+
+Planned work is tracked in [ROADMAP.md](ROADMAP.md) and mirrored as GitHub issues.
+The near-term focus is correctness and stability, followed by OpenAPI documentation
+generation, test coverage, and benchmarks.
+
+## License
+
+Released under the [MIT License](LICENSE).
