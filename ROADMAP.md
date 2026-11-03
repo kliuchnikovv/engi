@@ -17,7 +17,7 @@ issue — the links are given inline.
 
 | Area | Status |
 |---|---|
-| Trie-based router (`:param`, `*wildcard`) | ✅ done |
+| Trie-based router (`{param}`, `*wildcard`) | ✅ done |
 | Service registration, prefixes, graceful shutdown | ✅ done |
 | Parameter extraction (path / query / header / cookie) with type parsing | ✅ done |
 | Parameter validators (`NotEmpty`, `Greater`, `Less`, `AND`, `OR`) | ✅ done |
@@ -39,6 +39,12 @@ framework. Estimated effort: **~8 hours**.
 
 ### Bugs to fix
 
+- [x] **Routes with a path parameter never matched.** ([#26](https://github.com/kliuchnikovv/engi/issues/26))
+      The trie router recognized `:name` segments, but the public API — the README,
+      the example application and every `path.Integer("id", …)` declaration — uses the
+      `{name}` syntax. The trie was therefore matching the literal segment `{id}` and
+      answering `404` for every route that had a path parameter. The trie now accepts
+      both spellings.
 - [ ] **Bearer auth never validates the presented token.** ([#10](https://github.com/kliuchnikovv/engi/issues/10))
       `definition/middlewares/auth/auth.go:98` compares the constant `authHeader`
       (`"Authorization"`) instead of the value read from the request, and the branch is

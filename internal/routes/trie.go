@@ -32,11 +32,13 @@ func NewTrie[T any]() *Trie[T] {
 }
 
 // Add registers a handler at the given pattern and method
-// Pattern supports ":param" and final "*wildcard"
+// Pattern supports ":param", "{param}" and final "*wildcard"
 func (t *Trie[T]) Add(method, pattern string, handler T) {
 	segments := split(pattern)
 	cur := t.root
 	for _, seg := range segments {
+		seg = normalizeSegment(seg)
+
 		var child *node[T]
 		for _, c := range cur.children {
 			if c.segment == seg {
@@ -133,4 +135,14 @@ func split(path string) []string {
 	}
 
 	return strings.Split(clean, "/")
+}
+
+// normalizeSegment rewrites the public "{name}" path syntax into the trie's
+// internal ":name" form. The ":name" form is accepted as well.
+func normalizeSegment(segment string) string {
+	if strings.HasPrefix(segment, "{") && strings.HasSuffix(segment, "}") {
+		return ":" + segment[1:len(segment)-1]
+	}
+
+	return segment
 }
