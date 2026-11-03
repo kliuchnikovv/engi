@@ -89,13 +89,14 @@ func BearerFunc(
 		name: "bearer",
 		handle: func(_ context.Context, r *http.Request, w http.ResponseWriter) error {
 			var header = r.Header.Get(authHeader)
-			if len(header) == 0 {
+			if len(header) < len(bearerPrefix) || !strings.EqualFold(header[:len(bearerPrefix)], bearerPrefix) {
 				w.WriteHeader(http.StatusUnauthorized)
 
 				return errUnathorized
 			}
 
-			if isValid(strings.TrimPrefix(authHeader, bearerPrefix)) {
+			token := strings.TrimLeft(header[len(bearerPrefix):], " ")
+			if token == "" || strings.ContainsAny(token, " \t\r\n") || !isValid(token) {
 				w.WriteHeader(http.StatusUnauthorized)
 
 				return errUnathorized
