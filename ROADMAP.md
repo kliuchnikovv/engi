@@ -6,7 +6,8 @@ handles routing, parameter validation, response wrapping, and (planned) API docu
 so that application code stays declarative.
 
 This document describes the work planned for the project. Items are grouped by release and
-carry an effort estimate so the scope is explicit.
+carry an effort estimate so the scope is explicit. Every item is tracked as a GitHub
+issue — the links are given inline.
 
 **Status legend:** `🔜 planned` · `🚧 in progress` · `✅ done`
 
@@ -38,29 +39,29 @@ framework. Estimated effort: **~8 hours**.
 
 ### Bugs to fix
 
-- [ ] **Bearer auth never validates the presented token.**
+- [ ] **Bearer auth never validates the presented token.** ([#10](https://github.com/kliuchnikovv/engi/issues/10))
       `definition/middlewares/auth/auth.go:98` compares the constant `authHeader`
       (`"Authorization"`) instead of the value read from the request, and the branch is
       inverted — a *valid* token is rejected while an *invalid* one is accepted. Bearer
       auth is effectively a no-op for any request carrying an `Authorization` header.
       Add regression tests covering valid / invalid / missing / malformed tokens.
-- [ ] **Handler errors are swallowed.**
+- [ ] **Handler errors are swallowed.** ([#11](https://github.com/kliuchnikovv/engi/issues/11))
       `internal/routes/routes.go:79` prints the error with `fmt.Print` and returns `nil`,
       so a failing handler produces a `200 OK` with an empty body. Errors must reach the
       response writer and the logger.
-- [ ] **Every middleware failure is reported as `400 Bad Request`.**
+- [ ] **Every middleware failure is reported as `400 Bad Request`.** ([#12](https://github.com/kliuchnikovv/engi/issues/12))
       `internal/routes/route.go:78` maps all middleware errors through
       `response.BadRequest`, so an auth failure answers `400` instead of `401`, and a
       rate-limit failure answers `400` instead of `429`. Introduce a typed error that
       middlewares can use to select the status code.
-- [ ] **Parameter conversion panics instead of returning an error.**
+- [ ] **Parameter conversion panics instead of returning an error.** ([#13](https://github.com/kliuchnikovv/engi/issues/13))
       `internal/request/request.go` panics in `Bool`, `Integer`, `Float`, `String` and
       `Time` when a parsed value has an unexpected type. Replace panics with errors
       surfaced through the response.
-- [ ] **`Engine.Shutdown` ignores its context.**
+- [ ] **`Engine.Shutdown` ignores its context.** ([#14](https://github.com/kliuchnikovv/engi/issues/14))
       `server.go:84` discards the `context.Context` argument and only signals the
       internal channel; the deadline is never honoured.
-- [ ] **API key / basic auth compare secrets with `!=`.**
+- [ ] **API key / basic auth compare secrets with `!=`.** ([#15](https://github.com/kliuchnikovv/engi/issues/15))
       `definition/middlewares/auth/auth.go` — switch to `crypto/subtle` constant-time
       comparison so token checks do not leak length or prefix information through
       response timing.
@@ -72,11 +73,12 @@ framework. Estimated effort: **~8 hours**.
 
 - [ ] Remove dead code left over from the regexp router: `parameterRegexp`
       (`internal/routes/routes.go:18`) and the `regexpRoute` type are only referenced from
-      commented-out blocks.
+      commented-out blocks. ([#16](https://github.com/kliuchnikovv/engi/issues/16))
 - [ ] Remove the discarded `slog.New(...)` call in `NewService`
       (`service.go:58`), whose result is thrown away.
 - [ ] Remove the duplicated `Start` doc comment (`server.go:58` and `server.go:62`).
 - [ ] Call `signal.Stop` on shutdown so the process stops intercepting `SIGTERM`.
+- [ ] The remaining small defects. ([#17](https://github.com/kliuchnikovv/engi/issues/17))
 
 ---
 
@@ -98,8 +100,13 @@ validation regexp, and responses are marshaled by a pluggable `Marshaler`.
       descriptions, parameter schemas, auth requirements.
 - [ ] Collect the specification from the registered services.
 - [ ] Serve the generated document over HTTP.
-- [ ] Serve a Swagger UI / Redoc page pointed at that document.
 - [ ] Support per-service or per-route overrides for tags, summaries and status codes.
+
+Tracked as [#18](https://github.com/kliuchnikovv/engi/issues/18).
+
+- [ ] Serve a Swagger UI / Redoc page pointed at that document.
+
+Tracked as [#19](https://github.com/kliuchnikovv/engi/issues/19).
 
 ### Tests
 
@@ -112,20 +119,23 @@ validation regexp, and responses are marshaled by a pluggable `Marshaler`.
 - [ ] Integration tests that drive a full engine over `httptest`.
 - [ ] Raise coverage to a level worth publishing as a badge.
 
+Tracked as [#20](https://github.com/kliuchnikovv/engi/issues/20).
+
 ### Benchmarks
 
 - [ ] Benchmarks for route matching across static, parameterized and wildcard paths.
 - [ ] Benchmarks for parameter parsing and validation.
 - [ ] Benchmarks for response marshaling in both formats.
 
+Tracked as [#21](https://github.com/kliuchnikovv/engi/issues/21).
+
 ### Developer experience
 
 - [ ] Replace the `fmt.Print` debugging leftovers with structured logging.
+      ([#11](https://github.com/kliuchnikovv/engi/issues/11))
 - [ ] Move the hard-coded middleware priorities into an exported map so applications can
       order their own middleware deterministically.
-- [ ] Enable request body size limits (`engi.go:14`).
-- [ ] Publish request/response access logs with duration and status
-      (`engi.go:17`).
+      ([#24](https://github.com/kliuchnikovv/engi/issues/24))
 
 ---
 
@@ -136,13 +146,17 @@ Estimated effort: **~16 hours**.
 
 - [ ] **gRPC transport.** Expose services over gRPC alongside HTTP, mapping parameters and
       responses onto the protobuf types (`internal/response/response.go`).
+      ([#22](https://github.com/kliuchnikovv/engi/issues/22))
 - [ ] **WebSocket and server-sent events.** Support upgrading a route to a streaming
       handler, and add an SSE response helper.
+      ([#23](https://github.com/kliuchnikovv/engi/issues/23))
 - [ ] **Rate limiting middleware.** Token bucket per client, per route or per service.
+      ([#24](https://github.com/kliuchnikovv/engi/issues/24))
 - [ ] **Request/response compression.** Gzip and Brotli content encodings.
+      ([#24](https://github.com/kliuchnikovv/engi/issues/24))
 - [ ] **Static file serving.** Serve embedded assets or a directory from a route.
 - [ ] **Panic recovery middleware.** Convert handler panics into `500` responses instead
-      of dropping the connection.
+      of dropping the connection. ([#24](https://github.com/kliuchnikovv/engi/issues/24))
 - [ ] **Context helpers.** Propagate values through `context.Context` rather than through
       the request wrapper, so handlers can carry request-scoped state.
 
@@ -161,6 +175,10 @@ Estimated effort: **~16 hours**.
       generate release artifacts.
 - [ ] Package documentation for every exported identifier, with usage examples that
       compile as documentation examples.
+- [ ] Enable request body size limits (`engi.go:14`).
+- [ ] Publish request/response access logs with duration and status (`engi.go:17`).
+
+Tracked as [#25](https://github.com/kliuchnikovv/engi/issues/25).
 
 ---
 
