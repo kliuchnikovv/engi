@@ -55,3 +55,46 @@ func TestTree_Get(t *testing.T) {
 		}
 	}
 }
+
+// TestTree_Get_BraceSyntax checks the "{name}" path syntax, which is the one
+// exposed by the public API, against the ":name" syntax used internally.
+func TestTree_Get_BraceSyntax(t *testing.T) {
+	pathfinder := routes.NewTrie[int]()
+
+	handlerNotes := 1
+	handlerNote := 2
+	handlerAsset := 3
+
+	pathfinder.Add("GET", "/notes", handlerNotes)
+	pathfinder.Add("GET", "/notes/{id}", handlerNote)
+	pathfinder.Add("GET", "/assets/*filepath", handlerAsset)
+
+	tests := []struct {
+		path         string
+		expectFound  bool
+		expectValue  interface{}
+		expectParams map[placing.Placing]map[string]string
+	}{
+		{"/notes", true, &handlerNotes, map[placing.Placing]map[string]string{}},
+		{"/notes/123", true, &handlerNote, map[placing.Placing]map[string]string{
+			placing.InPath: {"id": "123"}},
+		},
+		{"/notes/123/comments", false, nil, nil},
+		{"/assets/css/main.css", true, &handlerAsset, map[placing.Placing]map[string]string{
+			placing.InPath: {"filepath": "css/main.css"}},
+		},
+	}
+
+	for _, tc := range tests {
+		req := &request.Request{}
+		got, err := pathfinder.Get(req, "GET", tc.path)
+
+		if tc.expectFound {
+			assert.NoError(t, err, "path %s: unexpected error", tc.path)
+			assert.Equal(t, tc.expectValue, got, "path %s: handler mismatch", tc.path)
+			assert.Equal(t, tc.expectParams, req.Parameters(), "path %s: params mismatch", tc.path)
+		} else {
+			assert.Equal(t, routes.ErrNotHandled, err, "path %s: expected ErrNotHandled", tc.path)
+		}
+	}
+}
