@@ -32,6 +32,23 @@ func (s *notesService) handleGet(ctx context.Context, req engi.Request, resp eng
 	return resp.OK(req.Integer("id", placing.InPath))
 }
 
+// assetsService serves a trailing wildcard route.
+type assetsService struct{}
+
+func (s *assetsService) Prefix() string {
+	return "assets"
+}
+
+func (s *assetsService) Routers() engi.Routes {
+	return engi.Routes{
+		engi.GET("*filepath"): engi.Handle(s.handleGet, path.String("filepath")),
+	}
+}
+
+func (s *assetsService) handleGet(ctx context.Context, req engi.Request, resp engi.Response) error {
+	return resp.OK(req.String("filepath", placing.InPath))
+}
+
 // TestPathParameterRouting checks that a route declared with a path parameter is
 // reachable and that the parameter reaches the handler parsed into its type.
 func TestPathParameterRouting(t *testing.T) {
@@ -76,4 +93,26 @@ func TestPathParameterRouting(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
+}
+
+// TestWildcardRouting checks that a trailing wildcard route is reachable and that
+// the wildcard reaches the handler, including the slashes it swallowed.
+func TestWildcardRouting(t *testing.T) {
+	eng := engi.New("")
+
+	err := eng.RegisterServices(&assetsService{})
+	assert.NoError(t, err)
+
+	server := httptest.NewServer(eng.Server().Handler)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/assets/css/main.css")
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.JSONEq(t, `"css/main.css"`, string(body))
 }
