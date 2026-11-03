@@ -45,6 +45,10 @@ framework. Estimated effort: **~8 hours**.
       `{name}` syntax. The trie was therefore matching the literal segment `{id}` and
       answering `404` for every route that had a path parameter. The trie now accepts
       both spellings.
+- [x] **The trailing wildcard syntax was audited** and is covered by tests.
+      `GET /assets/*filepath` matches through the public API and hands the handler the
+      swallowed slashes (`css/main.css`). The example application and the documentation
+      use only the `{name}` syntax, and no route outside the tests declares a wildcard.
 - [ ] **Bearer auth never validates the presented token.** ([#10](https://github.com/kliuchnikovv/engi/issues/10))
       `definition/middlewares/auth/auth.go:98` compares the constant `authHeader`
       (`"Authorization"`) instead of the value read from the request, and the branch is
